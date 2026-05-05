@@ -269,7 +269,9 @@ const App = () => {
       setShowModal(false);
       setEditingId(null);
       setFormContent(initialFormContent);
-    } catch (err) { console.error("Simpan Gagal:", err); }
+    } catch (err) { 
+      console.error("Simpan Gagal:", err); 
+    }
   };
 
   const handleSourceSubmit = async (e) => {
@@ -303,7 +305,12 @@ const App = () => {
     const files = Array.from(e.target.files);
     files.forEach(file => {
       const reader = new FileReader();
-      reader.onloadend = () => setFormContent(prev => ({ ...prev, images: [...(prev.images || []), reader.result] }));
+      reader.onloadend = () => {
+        setFormContent(prev => ({ 
+          ...prev, 
+          images: [...(prev.images || []), reader.result] 
+        }));
+      };
       reader.readAsDataURL(file);
     });
   };
@@ -421,7 +428,7 @@ const App = () => {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => { setShowAddBrandModal(true); setShowBrandDropdown(false); }} className="w-full text-left p-5 text-sm font-black text-indigo-600 bg-indigo-50/50 flex items-center gap-3 hover:bg-indigo-100 transition-colors cursor-pointer text-left"><PlusCircle size={20} /> Tambah Bisnis Baru</button>
+                <button onClick={() => { setShowAddBrandModal(true); setShowBrandDropdown(false); }} className="w-full text-left p-5 text-sm font-black text-indigo-600 bg-indigo-50/30 flex items-center gap-3 hover:bg-indigo-100 transition-colors cursor-pointer text-left"><PlusCircle size={20} /> Tambah Bisnis Baru</button>
               </div>
             )}
           </div>
@@ -592,7 +599,10 @@ const App = () => {
                    </div>
                 </div>
 
-                <button type="submit" className="w-full bg-indigo-600 text-white font-black py-8 rounded-[2.5rem] shadow-2xl uppercase tracking-widest text-xl hover:bg-indigo-700 hover:scale-[1.01] active:scale-95 transition-all cursor-pointer text-left">Simpan Rencana</button>
+                {/* Tombol Simpan yang diperbarui (py-5 untuk proporsional) */}
+                <button type="submit" className="w-full bg-indigo-600 text-white font-black py-5 rounded-[2rem] shadow-2xl uppercase tracking-widest text-lg hover:bg-indigo-700 hover:scale-[1.01] active:scale-95 transition-all cursor-pointer text-left">
+                  Simpan Rencana
+                </button>
               </form>
             </div>
 
@@ -603,10 +613,10 @@ const App = () => {
               </div>
               
               <div className="w-[320px] h-[640px] bg-white rounded-[3.5rem] shadow-[0_40px_100px_-15px_rgba(0,0,0,0.2)] border-[12px] border-slate-900 overflow-hidden flex flex-col text-left">
-                {/* Visual Preview */}
+                {/* Visual Preview (Perbaikan pengecekan gambar) */}
                 <div className="flex-1 bg-slate-100 flex items-center justify-center relative overflow-hidden text-left">
                   {formContent.images && formContent.images.length > 0 ? (
-                    <img src={formContent.images[0]} className="w-full h-full object-cover text-left" />
+                    <img src={formContent.images[formContent.images.length - 1]} className="w-full h-full object-cover text-left" alt="Preview" />
                   ) : (
                     <div className="text-center text-slate-300 text-left">
                       <ImageIcon size={64} strokeWidth={1} className="mx-auto mb-2 text-left" />
@@ -621,7 +631,7 @@ const App = () => {
                 </div>
 
                 {/* Caption Preview */}
-                <div className="p-6 h-[200px] overflow-y-auto text-left">
+                <div className="p-6 h-[200px] overflow-y-auto text-left scrollbar-hide">
                   <div className="flex items-center gap-2 mb-3 text-left">
                     <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs text-left">
                       {filterBrand ? filterBrand.charAt(0).toUpperCase() : 'P'}
@@ -643,10 +653,10 @@ const App = () => {
       {confirmModal.show && (
         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[200] flex items-center justify-center p-4 text-left">
           <div className="bg-white rounded-[3rem] p-10 max-w-sm w-full shadow-2xl animate-in zoom-in text-center text-left">
-            <div className="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-bounce text-left text-left text-left"><Trash2 size={40} /></div>
-            <h3 className="text-2xl font-black uppercase tracking-tight mb-3 text-left">Hapus Data?</h3>
-            <p className="text-slate-500 font-medium text-sm mb-10 leading-relaxed text-left">Tindakan ini tidak bisa dibatalkan. Apakah Anda yakin ingin melanjutkan?</p>
-            <div className="flex gap-4 text-left"><button onClick={() => setConfirmModal({ show: false, type: '', target: null })} className="flex-1 py-5 bg-slate-100 rounded-2xl font-black uppercase text-xs tracking-widest transition-colors hover:bg-slate-200 cursor-pointer text-left">Batal</button><button onClick={executeDelete} className="flex-1 py-5 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-red-100 hover:bg-red-700 transition-all cursor-pointer text-left text-left">Hapus Permanen</button></div>
+            <div className="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-bounce text-left"><Trash2 size={40} /></div>
+            <h3 className="text-2xl font-black uppercase tracking-tight mb-3 text-left text-center">Hapus Data?</h3>
+            <p className="text-slate-500 font-medium text-sm mb-10 leading-relaxed text-left text-center">Tindakan ini tidak bisa dibatalkan. Apakah Anda yakin ingin melanjutkan?</p>
+            <div className="flex gap-4 text-left"><button onClick={() => setConfirmModal({ show: false, type: '', target: null })} className="flex-1 py-5 bg-slate-100 rounded-2xl font-black uppercase text-xs tracking-widest transition-colors hover:bg-slate-200 cursor-pointer text-left">Batal</button><button onClick={executeDelete} className="flex-1 py-5 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-red-100 hover:bg-red-700 transition-all cursor-pointer text-left">Hapus Permanen</button></div>
           </div>
         </div>
       )}
@@ -655,9 +665,9 @@ const App = () => {
       {showAddBrandModal && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 text-left">
           <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md p-12 space-y-10 animate-in zoom-in text-center text-left">
-            <h2 className="text-3xl font-black text-indigo-900 uppercase tracking-tight text-left">Bisnis Baru</h2>
+            <h2 className="text-3xl font-black text-indigo-900 uppercase tracking-tight text-left text-center">Bisnis Baru</h2>
             <input required autoFocus type="text" placeholder="Masukkan Nama Bisnis" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] outline-none font-black text-xl text-center shadow-inner focus:ring-4 focus:ring-indigo-50 transition-all text-left" value={newBrandName} onChange={e => setNewBrandName(e.target.value)} />
-            <div className="flex gap-4 text-left text-left"><button onClick={() => setShowAddBrandModal(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-bold uppercase text-xs tracking-widest cursor-pointer text-left">Batal</button><button onClick={handleAddBrand} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 transition-all uppercase tracking-widest shadow-lg cursor-pointer text-left">Simpan</button></div>
+            <div className="flex gap-4 text-left"><button onClick={() => setShowAddBrandModal(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-bold uppercase text-xs tracking-widest cursor-pointer text-left">Batal</button><button onClick={handleAddBrand} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 transition-all uppercase tracking-widest shadow-lg cursor-pointer text-left">Simpan</button></div>
           </div>
         </div>
       )}
@@ -665,12 +675,12 @@ const App = () => {
       {/* MODAL SOURCE BARU */}
       {showSourceModal && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-lg z-[60] flex items-center justify-center p-4 text-left">
-          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-xl p-10 space-y-8 animate-in zoom-in duration-300 text-left text-left text-left">
-            <h2 className="text-2xl font-black text-indigo-900 uppercase tracking-tight text-left text-left">{editingSourceId ? 'Edit' : 'Tambah'} Source</h2>
-            <div className="text-left"><label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest text-left text-left text-left">Tautan URL</label><input required autoFocus type="url" placeholder="https://..." className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold shadow-inner text-left text-left" value={sourceForm.url} onChange={e => setSourceForm({ ...sourceForm, url: e.target.value })} /></div>
-            <div className="text-left text-left"><label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest text-left text-left text-left">Catatan Singkat</label><textarea rows="4" className="w-full p-6 bg-slate-50 border rounded-[2rem] outline-none font-medium resize-none shadow-inner text-left text-left" value={sourceForm.notes} onChange={e => setSourceForm({ ...sourceForm, notes: e.target.value })}></textarea></div>
+          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-xl p-10 space-y-8 animate-in zoom-in duration-300 text-left">
+            <h2 className="text-2xl font-black text-indigo-900 uppercase tracking-tight text-left">{editingSourceId ? 'Edit' : 'Tambah'} Source</h2>
+            <div className="text-left"><label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest text-left">Tautan URL</label><input required autoFocus type="url" placeholder="https://..." className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold shadow-inner text-left" value={sourceForm.url} onChange={e => setSourceForm({ ...sourceForm, url: e.target.value })} /></div>
+            <div className="text-left"><label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest text-left">Catatan Singkat</label><textarea rows="4" className="w-full p-6 bg-slate-50 border rounded-[2rem] outline-none font-medium resize-none shadow-inner text-left" value={sourceForm.notes} onChange={e => setSourceForm({ ...sourceForm, notes: e.target.value })}></textarea></div>
             <button onClick={handleSourceSubmit} className="w-full bg-indigo-600 text-white font-black py-6 rounded-[2rem] uppercase tracking-widest transition-all hover:bg-indigo-700 cursor-pointer shadow-lg text-left">Simpan ke Bank Ide</button>
-            <button onClick={() => setShowSourceModal(false)} className="w-full py-4 text-slate-400 font-bold uppercase text-xs cursor-pointer text-left">Batal</button>
+            <button onClick={() => setShowSourceModal(false)} className="w-full py-4 text-slate-400 font-bold uppercase text-xs cursor-pointer text-left text-center">Batal</button>
           </div>
         </div>
       )}
@@ -678,4 +688,4 @@ const App = () => {
   );
 };
 
-export default App
+export default App;
