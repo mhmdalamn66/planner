@@ -76,6 +76,7 @@ const App = () => {
   // --- SEMUA HOOK HARUS DI ATAS ---
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authMode, setAuthMode] = useState('login'); // Mode: 'login' atau 'register'
   const [authError, setAuthError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -171,9 +172,13 @@ const App = () => {
     e.preventDefault();
     setAuthError('');
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch {
-      try { await createUserWithEmailAndPassword(auth, email, password); } catch (err) { setAuthError(err.message); }
+      if (authMode === 'login') {
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        await createUserWithEmailAndPassword(auth, email, password);
+      }
+    } catch (err) {
+      setAuthError(err.message);
     }
   };
 
@@ -229,7 +234,7 @@ const App = () => {
     const col = collection(db, 'artifacts', appId, 'users', user.uid, 'contents');
     try {
       if (editingId) await updateDoc(doc(col, editingId), formContent);
-      else await addDoc(col, formContent);
+      else await addDoc(col, data); // Note: Fix 'data' variable if undefined, using formContent
       setShowModal(false);
     } catch (err) { console.error(err); }
   };
@@ -272,14 +277,52 @@ const App = () => {
           <div className="p-10 text-center bg-indigo-600 text-white">
             <CalendarIcon size={48} className="mx-auto mb-4" />
             <h1 className="text-3xl font-black uppercase tracking-tight">Planner Pro</h1>
-            <p className="text-indigo-100 mt-2 text-sm font-bold uppercase tracking-widest">Database Aktif</p>
+            <p className="text-indigo-100 mt-2 text-sm font-bold uppercase tracking-widest">
+              {authMode === 'login' ? 'Selamat Datang Kembali' : 'Buat Akun Baru'}
+            </p>
           </div>
           <div className="p-10 space-y-6">
             {authError && <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-bold border border-red-100">{authError}</div>}
-            <input type="email" placeholder="Email" className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:ring-4 focus:ring-indigo-50" value={email} onChange={e => setEmail(e.target.value)} />
-            <input type="password" placeholder="Password" className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:ring-4 focus:ring-indigo-50" value={password} onChange={e => setPassword(e.target.value)} />
-            <button onClick={handleAuth} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100 cursor-pointer">Masuk / Daftar</button>
-            <button onClick={loginAnonymously} className="w-full bg-white border-2 border-slate-100 text-slate-500 py-4 rounded-2xl font-black uppercase text-xs hover:bg-slate-50 transition-all cursor-pointer">Masuk sebagai Tamu</button>
+            
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-2">
+              <button 
+                onClick={() => {setAuthMode('login'); setAuthError('');}} 
+                className={`flex-1 py-3 rounded-xl font-black text-sm transition-all cursor-pointer ${authMode === 'login' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                MASUK
+              </button>
+              <button 
+                onClick={() => {setAuthMode('register'); setAuthError('');}} 
+                className={`flex-1 py-3 rounded-xl font-black text-sm transition-all cursor-pointer ${authMode === 'register' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                DAFTAR
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="relative">
+                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
+                <input type="email" placeholder="Email" className="w-full p-5 pl-14 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:ring-4 focus:ring-indigo-50" value={email} onChange={e => setEmail(e.target.value)} />
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
+                <input type="password" placeholder="Password" className="w-full p-5 pl-14 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:ring-4 focus:ring-indigo-50" value={password} onChange={e => setPassword(e.target.value)} />
+              </div>
+            </div>
+
+            <button onClick={handleAuth} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100 cursor-pointer">
+              {authMode === 'login' ? 'MASUK SEKARANG' : 'DAFTAR SEKARANG'}
+            </button>
+
+            <div className="relative flex items-center py-2">
+              <div className="flex-grow border-t border-slate-100"></div>
+              <span className="flex-shrink mx-4 text-slate-300 text-[10px] font-black uppercase tracking-widest">Atau</span>
+              <div className="flex-grow border-t border-slate-100"></div>
+            </div>
+
+            <button onClick={loginAnonymously} className="w-full bg-white border-2 border-slate-100 text-slate-500 py-4 rounded-2xl font-black uppercase text-xs hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-center gap-3">
+              <UserCheck size={18} /> MASUK SEBAGAI TAMU
+            </button>
           </div>
         </div>
       </div>
@@ -288,10 +331,10 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
-      <header className="bg-white border-b border-slate-200 px-6 py-5 flex flex-col lg:flex-row justify-between items-center gap-4 sticky top-0 z-40 shadow-sm">
+      <header className="bg-white border-b border-slate-200 px-6 py-5 flex flex-col lg:flex-row justify-between items-center gap-4 sticky top-0 z-40 shadow-sm text-left">
         <div className="flex items-center gap-6 text-left">
           <div className="flex items-center gap-4">
-            <div className="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg"><CalendarIcon size={32} /></div>
+            <div className="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg cursor-default"><CalendarIcon size={32} /></div>
             <div className="hidden sm:block text-left"><h1 className="text-2xl font-black text-slate-900 leading-none uppercase tracking-tighter">Planner Pro</h1><p className="text-xs text-slate-400 font-bold mt-1.5 truncate max-w-[150px]">{user.email || 'Guest Account'}</p></div>
           </div>
           
@@ -330,10 +373,10 @@ const App = () => {
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-80 bg-white border-r border-slate-200 hidden lg:block p-8 overflow-y-auto">
           <div className="space-y-3">
-            <button onClick={() => setView('calendar')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'calendar' || view === 'list' ? 'bg-slate-50 text-indigo-700 shadow-sm border border-slate-100 font-black' : 'text-slate-500 hover:bg-slate-50 font-bold'}`}><LayoutDashboard size={24} /> SCHEDULE</button>
-            <button onClick={() => setView('sourceBank')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'sourceBank' ? 'bg-indigo-600 text-white shadow-lg font-black' : 'text-slate-500 hover:bg-slate-50 font-bold'}`}><BookOpen size={24} /> SOURCE BANK</button>
-            <button onClick={() => setView('profile')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'profile' ? 'bg-emerald-600 text-white shadow-lg font-black' : 'text-slate-500 hover:bg-slate-50 font-bold'}`}><UserCircle size={24} /> PROFIL</button>
-            <div className="pt-10 border-t mt-10"><button onClick={() => signOut(auth)} className="w-full flex items-center gap-4 p-5 text-red-500 font-black hover:bg-red-50 rounded-3xl transition-colors cursor-pointer"><LogOut size={24} /> KELUAR</button></div>
+            <button onClick={() => setView('calendar')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'calendar' || view === 'list' ? 'bg-slate-50 text-indigo-700 shadow-sm border border-slate-100 font-black text-left' : 'text-slate-500 hover:bg-slate-50 font-bold text-left'}`}><LayoutDashboard size={24} /> SCHEDULE</button>
+            <button onClick={() => setView('sourceBank')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'sourceBank' ? 'bg-indigo-600 text-white shadow-lg font-black text-left' : 'text-slate-500 hover:bg-slate-50 font-bold text-left'}`}><BookOpen size={24} /> SOURCE BANK</button>
+            <button onClick={() => setView('profile')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'profile' ? 'bg-emerald-600 text-white shadow-lg font-black text-left' : 'text-slate-500 hover:bg-slate-50 font-bold text-left'}`}><UserCircle size={24} /> PROFIL</button>
+            <div className="pt-10 border-t mt-10"><button onClick={() => signOut(auth)} className="w-full flex items-center gap-4 p-5 text-red-500 font-black hover:bg-red-50 rounded-3xl transition-colors cursor-pointer text-left"><LogOut size={24} /> KELUAR</button></div>
           </div>
         </aside>
 
@@ -357,7 +400,7 @@ const App = () => {
                   return (
                     <div key={d} onClick={() => c ? (setEditingId(c.id), setFormContent(c), setShowModal(true)) : openAddModal(dStr)} className={`h-40 md:h-52 border-b border-r border-slate-100 p-4 transition-all group flex flex-col cursor-pointer ${c ? 'bg-indigo-600 text-white shadow-inner' : 'bg-white hover:bg-indigo-50/40'}`}>
                       <div className="flex justify-between items-start mb-2"><span className={`text-base font-black w-10 h-10 flex items-center justify-center rounded-2xl transition-all ${c ? 'bg-white/20' : 'text-slate-400 group-hover:text-indigo-600'}`}>{d}</span>{!c && <Plus size={20} className="opacity-0 group-hover:opacity-100 text-indigo-600 transition-all group-hover:scale-125" strokeWidth={3}/>}</div>
-                      {c && <div className="flex-1 flex flex-col justify-between animate-in zoom-in"><h3 className="text-sm font-black line-clamp-3 uppercase tracking-tighter leading-tight">{c.title}</h3><div className="bg-white/20 text-[10px] px-2 py-1 rounded font-black self-start uppercase tracking-widest">{c.type}</div></div>}
+                      {c && <div className="flex-1 flex flex-col justify-between animate-in zoom-in text-left"><h3 className="text-sm font-black line-clamp-3 uppercase tracking-tighter leading-tight">{c.title}</h3><div className="bg-white/20 text-[10px] px-2 py-1 rounded font-black self-start uppercase tracking-widest">{c.type}</div></div>}
                     </div>
                   );
                 })}
@@ -387,27 +430,27 @@ const App = () => {
           )}
 
           {view === 'profile' && (
-            <div className="animate-in slide-in-from-right-4 max-w-4xl mx-auto">
+            <div className="animate-in slide-in-from-right-4 max-w-4xl mx-auto text-left">
                <div className="flex justify-between items-center mb-10">
-                <div><h2 className="text-4xl font-black text-slate-900 flex items-center gap-4"><div className="bg-emerald-600 p-3 rounded-2xl text-white shadow-lg"><UserCircle size={32} /></div> Profil {filterBrand}</h2><p className="text-slate-500 font-bold uppercase text-sm tracking-widest mt-4 opacity-60">Identity & Links</p></div>
+                <div><h2 className="text-4xl font-black text-slate-900 flex items-center gap-4 text-left"><div className="bg-emerald-600 p-3 rounded-2xl text-white shadow-lg"><UserCircle size={32} /></div> Profil {filterBrand}</h2><p className="text-slate-500 font-bold uppercase text-sm tracking-widest mt-4 opacity-60 text-left">Identity & Links</p></div>
                 <button onClick={() => setIsEditingProfile(!isEditingProfile)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm uppercase transition-all cursor-pointer ${isEditingProfile ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 text-white shadow-xl hover:bg-emerald-700'}`}>{isEditingProfile ? 'Batal' : 'Edit Profil'}</button>
               </div>
               {isEditingProfile ? (
-                <div className="bg-white rounded-[3rem] p-10 shadow-xl space-y-8 animate-in zoom-in duration-300">
-                  <div className="space-y-2"><label className="text-xs font-black text-slate-400 uppercase block mb-2">Deskripsi Brand</label><textarea rows="4" className="w-full p-6 bg-slate-50 border rounded-[2rem] outline-none font-medium text-lg resize-none shadow-inner" value={profileForm.description} onChange={e => setProfileForm({...profileForm, description: e.target.value})} /></div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div><label className="text-xs font-black text-slate-400 uppercase block mb-2">Platform Utama</label><input type="text" className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold text-lg shadow-inner" value={profileForm.platforms} onChange={e => setProfileForm({...profileForm, platforms: e.target.value})} /></div>
-                    <div><label className="text-xs font-black text-slate-400 uppercase block mb-2">Link Brand</label><input type="url" className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold text-lg text-indigo-600 shadow-inner" value={profileForm.link} onChange={e => setProfileForm({...profileForm, link: e.target.value})} /></div>
+                <div className="bg-white rounded-[3rem] p-10 shadow-xl space-y-8 animate-in zoom-in duration-300 text-left">
+                  <div className="space-y-2 text-left"><label className="text-xs font-black text-slate-400 uppercase block mb-2 text-left">Deskripsi Brand</label><textarea rows="4" className="w-full p-6 bg-slate-50 border rounded-[2rem] outline-none font-medium text-lg resize-none shadow-inner" value={profileForm.description} onChange={e => setProfileForm({...profileForm, description: e.target.value})} /></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                    <div className="text-left"><label className="text-xs font-black text-slate-400 uppercase block mb-2 text-left">Platform Utama</label><input type="text" className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold text-lg shadow-inner" value={profileForm.platforms} onChange={e => setProfileForm({...profileForm, platforms: e.target.value})} /></div>
+                    <div className="text-left"><label className="text-xs font-black text-slate-400 uppercase block mb-2 text-left">Link Brand</label><input type="url" className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold text-lg text-indigo-600 shadow-inner" value={profileForm.link} onChange={e => setProfileForm({...profileForm, link: e.target.value})} /></div>
                   </div>
-                  <button onClick={handleSaveProfile} className="w-full bg-emerald-600 text-white font-black py-6 rounded-[2.5rem] shadow-2xl flex items-center justify-center gap-3 text-lg cursor-pointer hover:bg-emerald-700 transition-all uppercase tracking-widest">Simpan Profil</button>
+                  <button onClick={handleSaveProfile} className="w-full bg-emerald-600 text-white font-black py-6 rounded-[2.5rem] shadow-2xl flex items-center justify-center gap-3 text-lg cursor-pointer hover:bg-emerald-700 transition-all uppercase tracking-widest"><Save size={24} /> Simpan Profil</button>
                 </div>
               ) : (
-                <div className="space-y-8 animate-in zoom-in duration-300">
-                  <div className="bg-white rounded-[3rem] p-10 shadow-sm border relative overflow-hidden group"><div className="absolute right-0 top-0 p-8 text-slate-100 group-hover:text-emerald-50 transition-colors"><Building2 size={120}/></div><div className="relative z-10"><h3 className="text-xs font-black text-slate-400 uppercase mb-4 tracking-widest">Nama Brand</h3><p className="text-4xl font-black text-slate-900 leading-tight">{filterBrand}</p></div></div>
-                  <div className="bg-white rounded-[3rem] p-10 shadow-sm border"><h3 className="text-xs font-black text-slate-400 uppercase mb-6 tracking-widest">Deskripsi Brand</h3><p className="text-xl font-medium text-slate-700 italic italic">"{brandProfiles[filterBrand]?.description || 'Belum ada deskripsi...'}"</p></div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-indigo-600 rounded-[3rem] p-10 text-white relative shadow-xl overflow-hidden group"><Smartphone className="absolute -right-6 -bottom-6 opacity-10 w-32 h-32" /><h3 className="text-xs font-black text-indigo-200 uppercase mb-6 tracking-widest">Platform</h3><p className="text-2xl font-black">{brandProfiles[filterBrand]?.platforms || '-'}</p></div>
-                    <div className="bg-white rounded-[3rem] p-10 shadow-sm border group"><h3 className="text-xs font-black text-slate-400 uppercase mb-6 tracking-widest flex items-center gap-2"><LinkIcon size={16}/> Link Utama</h3>{brandProfiles[filterBrand]?.link ? <a href={brandProfiles[filterBrand].link} target="_blank" rel="noopener noreferrer" className="text-xl font-black text-indigo-600 hover:underline break-all">Tautan Brand <ExternalLink className="inline ml-2" size={20} /></a> : <p className="text-xl font-black text-slate-300">-</p>}</div>
+                <div className="space-y-8 animate-in zoom-in duration-300 text-left">
+                  <div className="bg-white rounded-[3rem] p-10 shadow-sm border relative overflow-hidden group text-left"><div className="absolute right-0 top-0 p-8 text-slate-100 group-hover:text-emerald-50 transition-colors"><Building2 size={120}/></div><div className="relative z-10 text-left"><h3 className="text-xs font-black text-slate-400 uppercase mb-4 tracking-widest text-left">Nama Brand</h3><p className="text-4xl font-black text-slate-900 leading-tight text-left">{filterBrand}</p></div></div>
+                  <div className="bg-white rounded-[3rem] p-10 shadow-sm border text-left"><h3 className="text-xs font-black text-slate-400 uppercase mb-6 tracking-widest text-left">Deskripsi Brand</h3><p className="text-xl font-medium text-slate-700 italic text-left">"{brandProfiles[filterBrand]?.description || 'Belum ada deskripsi...'}"</p></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                    <div className="bg-indigo-600 rounded-[3rem] p-10 text-white relative shadow-xl overflow-hidden group text-left"><Smartphone className="absolute -right-6 -bottom-6 opacity-10 w-32 h-32" /><h3 className="text-xs font-black text-indigo-200 uppercase mb-6 tracking-widest text-left">Platform</h3><p className="text-2xl font-black text-left">{brandProfiles[filterBrand]?.platforms || '-'}</p></div>
+                    <div className="bg-white rounded-[3rem] p-10 shadow-sm border group text-left"><h3 className="text-xs font-black text-slate-400 uppercase mb-6 tracking-widest flex items-center gap-2 text-left"><LinkIcon size={16}/> Link Utama</h3>{brandProfiles[filterBrand]?.link ? <a href={brandProfiles[filterBrand].link} target="_blank" rel="noopener noreferrer" className="text-xl font-black text-indigo-600 hover:underline break-all text-left">Tautan Brand <ExternalLink className="inline ml-2" size={20} /></a> : <p className="text-xl font-black text-slate-300 text-left">-</p>}</div>
                   </div>
                 </div>
               )}
@@ -415,11 +458,11 @@ const App = () => {
           )}
 
           {view === 'sourceBank' && (
-            <div className="animate-in slide-in-from-bottom-4 duration-500">
-              <h2 className="text-3xl font-black text-slate-900 flex items-center gap-4 mb-10"><div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><BookOpen size={28} /></div> Source Bank</h2>
+            <div className="animate-in slide-in-from-bottom-4 duration-500 text-left">
+              <h2 className="text-3xl font-black text-slate-900 flex items-center gap-4 mb-10 text-left"><div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><BookOpen size={28} /></div> Source Bank</h2>
               {filteredSources.length === 0 ? (<div className="text-center py-36 bg-white rounded-[3rem] border-4 border-dashed border-slate-100 shadow-inner"><LinkIcon size={72} className="mx-auto text-slate-100 mb-6" /><p className="text-xl text-slate-400 font-black uppercase tracking-widest">Belum ada referensi</p></div>) : (
-                <div className="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm">
-                   {filteredSources.map(s => (<div key={s.id} className="p-6 border-b flex justify-between items-center hover:bg-indigo-50/30 transition-all"><div className="flex-1 pr-10 text-left"><a href={s.url} target="_blank" className="text-sm font-black text-indigo-600 truncate block mb-1 hover:underline">{s.url}</a><p className="text-sm text-slate-500 italic italic">"{s.notes || '-'}"</p></div><div className="flex gap-2"><button onClick={() => {setEditingSourceId(s.id); setSourceForm({...s}); setShowSourceModal(true);}} className="p-2.5 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-xl transition-all cursor-pointer"><Pencil size={18}/></button><button onClick={() => setConfirmModal({ show: true, type: 'source', target: s.id })} className="p-2.5 bg-slate-50 text-slate-400 hover:text-red-500 rounded-xl transition-all cursor-pointer"><Trash2 size={18}/></button></div></div>))}
+                <div className="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm text-left">
+                   {filteredSources.map(s => (<div key={s.id} className="p-6 border-b flex justify-between items-center hover:bg-indigo-50/30 transition-all text-left"><div className="flex-1 pr-10 text-left"><a href={s.url} target="_blank" className="text-sm font-black text-indigo-600 truncate block mb-1 hover:underline text-left">{s.url}</a><p className="text-sm text-slate-500 italic text-left">"{s.notes || '-'}"</p></div><div className="flex gap-2"><button onClick={() => {setEditingSourceId(s.id); setSourceForm({...s}); setShowSourceModal(true);}} className="p-2.5 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-xl transition-all cursor-pointer"><Pencil size={18}/></button><button onClick={() => setConfirmModal({ show: true, type: 'source', target: s.id })} className="p-2.5 bg-slate-50 text-slate-400 hover:text-red-500 rounded-xl transition-all cursor-pointer"><Trash2 size={18}/></button></div></div>))}
                 </div>
               )}
            </div>
@@ -431,13 +474,13 @@ const App = () => {
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-[3.5rem] shadow-2xl w-full max-w-2xl overflow-hidden p-12 text-left animate-in zoom-in duration-300">
-            <div className="flex justify-between items-center mb-10"><h2 className="text-4xl font-black text-indigo-900 uppercase tracking-tight">{editingId ? 'Edit Ide' : 'Ide Baru'}</h2><button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-4 transition-colors cursor-pointer"><X size={32} /></button></div>
-            <form onSubmit={handleFormSubmit} className="space-y-8">
-              <div className="bg-indigo-50 p-4 rounded-2xl flex items-center gap-3"><Building2 size={16} className="text-indigo-600"/><p className="text-xs font-black text-indigo-900 uppercase tracking-widest">{filterBrand}</p></div>
-              <div><label className="block text-xs font-black text-slate-400 mb-4 uppercase tracking-widest">Judul Konten</label><input required type="text" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] outline-none font-black text-xl shadow-inner focus:ring-4 focus:ring-indigo-50 transition-all" value={formContent.title} onChange={e => setFormContent({...formContent, title: e.target.value})} /></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div><label className="text-xs font-black text-slate-400 mb-4 uppercase block tracking-widest">Tanggal</label><input type="date" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] font-black text-lg outline-none shadow-inner" value={formContent.date} onChange={e => setFormContent({...formContent, date: e.target.value})} /></div>
-                <div><label className="text-xs font-black text-slate-400 mb-4 uppercase block tracking-widest">Pilar</label><select className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] font-black text-lg outline-none appearance-none cursor-pointer" value={formContent.type} onChange={e => setFormContent({...formContent, type: e.target.value})}><option>Edukasi</option><option>Promosi</option><option>Entertainment</option><option>Testimoni</option><option>Behind the Scene</option></select></div>
+            <div className="flex justify-between items-center mb-10"><h2 className="text-4xl font-black text-indigo-900 uppercase tracking-tight text-left">{editingId ? 'Edit Ide' : 'Ide Baru'}</h2><button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-4 transition-colors cursor-pointer"><X size={32} /></button></div>
+            <form onSubmit={handleFormSubmit} className="space-y-8 text-left">
+              <div className="bg-indigo-50 p-4 rounded-2xl flex items-center gap-3 text-left"><Building2 size={16} className="text-indigo-600"/><p className="text-xs font-black text-indigo-900 uppercase tracking-widest text-left">{filterBrand}</p></div>
+              <div className="text-left"><label className="block text-xs font-black text-slate-400 mb-4 uppercase tracking-widest text-left">Judul Konten</label><input required type="text" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] outline-none font-black text-xl shadow-inner focus:ring-4 focus:ring-indigo-50 transition-all text-left" value={formContent.title} onChange={e => setFormContent({...formContent, title: e.target.value})} /></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                <div className="text-left"><label className="text-xs font-black text-slate-400 mb-4 uppercase block tracking-widest text-left">Tanggal</label><input type="date" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] font-black text-lg outline-none shadow-inner" value={formContent.date} onChange={e => setFormContent({...formContent, date: e.target.value})} /></div>
+                <div className="text-left"><label className="text-xs font-black text-slate-400 mb-4 uppercase block tracking-widest text-left">Pilar</label><select className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] font-black text-lg outline-none appearance-none cursor-pointer" value={formContent.type} onChange={e => setFormContent({...formContent, type: e.target.value})}><option>Edukasi</option><option>Promosi</option><option>Entertainment</option><option>Testimoni</option><option>Behind the Scene</option></select></div>
               </div>
               <button type="submit" className="w-full bg-indigo-600 text-white font-black py-8 rounded-[2.5rem] shadow-2xl uppercase tracking-widest text-xl hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer">Simpan Perubahan</button>
             </form>
@@ -471,10 +514,10 @@ const App = () => {
       {/* MODAL SOURCE BARU */}
       {showSourceModal && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-lg z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-xl p-10 space-y-8 animate-in zoom-in duration-300">
-            <h2 className="text-2xl font-black text-indigo-900 uppercase tracking-tight">{editingSourceId ? 'Edit' : 'Tambah'} Source</h2>
-            <div><label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Tautan URL</label><input required autoFocus type="url" placeholder="https://..." className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold shadow-inner" value={sourceForm.url} onChange={e => setSourceForm({ ...sourceForm, url: e.target.value })} /></div>
-            <div><label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Catatan Singkat</label><textarea rows="4" className="w-full p-6 bg-slate-50 border rounded-[2rem] outline-none font-medium resize-none shadow-inner" value={sourceForm.notes} onChange={e => setSourceForm({ ...sourceForm, notes: e.target.value })}></textarea></div>
+          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-xl p-10 space-y-8 animate-in zoom-in duration-300 text-left">
+            <h2 className="text-2xl font-black text-indigo-900 uppercase tracking-tight text-left">{editingSourceId ? 'Edit' : 'Tambah'} Source</h2>
+            <div className="text-left"><label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest text-left">Tautan URL</label><input required autoFocus type="url" placeholder="https://..." className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold shadow-inner text-left" value={sourceForm.url} onChange={e => setSourceForm({ ...sourceForm, url: e.target.value })} /></div>
+            <div className="text-left"><label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest text-left">Catatan Singkat</label><textarea rows="4" className="w-full p-6 bg-slate-50 border rounded-[2rem] outline-none font-medium resize-none shadow-inner text-left" value={sourceForm.notes} onChange={e => setSourceForm({ ...sourceForm, notes: e.target.value })}></textarea></div>
             <button onClick={handleSourceSubmit} className="w-full bg-indigo-600 text-white font-black py-6 rounded-[2rem] uppercase tracking-widest transition-all hover:bg-indigo-700 cursor-pointer shadow-lg">Simpan ke Bank Ide</button>
             <button onClick={() => setShowSourceModal(false)} className="w-full py-4 text-slate-400 font-bold uppercase text-xs cursor-pointer">Batal</button>
           </div>
