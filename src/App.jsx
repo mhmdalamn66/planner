@@ -60,6 +60,7 @@ const firebaseConfig = {
   measurementId: "G-R4NNE04WY7"
 };
 
+
 // Inisialisasi Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -106,8 +107,10 @@ const App = () => {
   const [profileForm, setProfileForm] = useState({ description: '', platforms: '', link: '' });
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   
+  // Carousel State untuk Preview
+  const [currentImgIdx, setCurrentImgIdx] = useState(0);
+  
   const fileInputRef = useRef(null);
-
   const initialFormContent = { title: '', brand: '', type: 'Edukasi', date: '', status: 'IDEA', caption: '', images: [] };
   const [formContent, setFormContent] = useState(initialFormContent);
   const [sourceForm, setSourceForm] = useState({ url: '', notes: '', brand: '' });
@@ -186,16 +189,18 @@ const App = () => {
     }
   }, [filterBrand, brandProfiles]);
 
+  // Reset carousel saat gambar berubah
+  useEffect(() => {
+    setCurrentImgIdx(0);
+  }, [formContent.images]);
+
   // --- EVENT HANDLERS ---
   const handleAuth = async (e) => {
     e.preventDefault();
     setAuthError('');
     try {
-      if (authMode === 'login') {
-        await signInWithEmailAndPassword(auth, email, password);
-      } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-      }
+      if (authMode === 'login') await signInWithEmailAndPassword(auth, email, password);
+      else await createUserWithEmailAndPassword(auth, email, password);
     } catch (err) {
       setAuthError(err.message);
     }
@@ -235,6 +240,7 @@ const App = () => {
         if (filterBrand === confirmModal.target) setFilterBrand(brands.find(b => b !== confirmModal.target) || '');
       } else if (confirmModal.type === 'content') {
         await deleteDoc(doc(db, ...path, 'contents', confirmModal.target));
+        setShowModal(false); // Pastikan modal tertutup jika menghapus via modal
       } else if (confirmModal.type === 'source') {
         await deleteDoc(doc(db, ...path, 'sources', confirmModal.target));
       }
@@ -265,10 +271,10 @@ const App = () => {
       } else {
         await addDoc(col, formContent);
       }
-      // PENTING: Tutup modal dan reset form secara sinkron
-      setShowModal(false);
-      setEditingId(null);
+      // RESET & CLOSE
       setFormContent(initialFormContent);
+      setEditingId(null);
+      setShowModal(false);
     } catch (err) { 
       console.error("Simpan Gagal:", err); 
     }
@@ -303,19 +309,30 @@ const App = () => {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormContent(prev => ({ 
-          ...prev, 
-          images: [reader.result] // Mengambil satu gambar terbaru untuk pratinjau utama
-        }));
-      };
-      reader.readAsDataURL(file);
+    const readers = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(readers).then(newImages => {
+      setFormContent(prev => ({ 
+        ...prev, 
+        images: [...(prev.images || []), ...newImages] 
+      }));
     });
   };
 
   const triggerFileInput = () => fileInputRef.current?.click();
+  const removeImage = (idx) => {
+    setFormContent(prev => ({ 
+      ...prev, 
+      images: prev.images.filter((_, i) => i !== idx) 
+    }));
+    if (currentImgIdx >= formContent.images.length - 1) setCurrentImgIdx(0);
+  };
 
   // --- RENDER LOGIC ---
   if (firebaseConfig.apiKey === "MASUKKAN_API_KEY_ANDA") {
@@ -343,14 +360,12 @@ const App = () => {
               {authMode === 'login' ? 'Login' : 'Daftar'}
             </p>
           </div>
-          <div className="p-8 space-y-4">
+          <div className="p-8 space-y-4 text-left">
             {authError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-[11px] font-bold border border-red-100">{authError}</div>}
-            
             <div className="flex bg-slate-100 p-1 rounded-xl">
               <button onClick={() => {setAuthMode('login'); setAuthError('');}} className={`flex-1 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${authMode === 'login' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>MASUK</button>
               <button onClick={() => {setAuthMode('register'); setAuthError('');}} className={`flex-1 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${authMode === 'register' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>DAFTAR</button>
             </div>
-
             <div className="space-y-3">
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
@@ -361,14 +376,8 @@ const App = () => {
                 <input type="password" placeholder="Password" className="w-full p-3.5 pl-11 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm focus:ring-2 focus:ring-indigo-100" value={password} onChange={e => setPassword(e.target.value)} />
               </div>
             </div>
-
-            <button onClick={handleAuth} className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold uppercase text-xs hover:bg-indigo-700 transition-all active:scale-95 shadow-lg shadow-indigo-100 cursor-pointer tracking-widest">
-              {authMode === 'login' ? 'MASUK' : 'DAFTAR'}
-            </button>
-
-            <button onClick={loginAnonymously} className="w-full bg-white border border-slate-200 text-slate-500 py-3 rounded-xl font-bold uppercase text-[10px] hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-center gap-2">
-              <UserCheck size={14} /> LOGIN TAMU
-            </button>
+            <button onClick={handleAuth} className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold uppercase text-xs hover:bg-indigo-700 transition-all active:scale-95 shadow-lg shadow-indigo-100 cursor-pointer tracking-widest">{authMode === 'login' ? 'MASUK' : 'DAFTAR'}</button>
+            <button onClick={loginAnonymously} className="w-full bg-white border border-slate-200 text-slate-500 py-3 rounded-xl font-bold uppercase text-[10px] hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-center gap-2"><UserCheck size={14} /> LOGIN TAMU</button>
           </div>
         </div>
       </div>
@@ -386,20 +395,17 @@ const App = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800 text-left">
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col lg:flex-row justify-between items-center gap-4 sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="bg-indigo-600 p-2 rounded-lg text-white"><CalendarIcon size={24} /></div>
           <div className="text-left">
             <h1 className="text-lg font-bold tracking-tight uppercase leading-none">Planner Pro</h1>
-            <p className="text-[10px] text-slate-400 font-bold mt-1 truncate max-w-[120px]">{user.email || 'Guest'}</p>
+            <p className="text-[10px] text-slate-400 font-bold mt-1 truncate max-w-[120px]">{user.email || 'Guest Account'}</p>
           </div>
-          
           <div className="relative ml-4">
             <button onClick={() => setShowBrandDropdown(!showBrandDropdown)} className="flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl hover:bg-indigo-50 transition-all cursor-pointer">
-              <Building2 size={18} className="text-indigo-600" />
-              <p className="text-sm font-bold">{filterBrand || 'Pilih Bisnis'}</p>
-              <ChevronDown size={14} />
+              <Building2 size={18} className="text-indigo-600" /><p className="text-sm font-bold">{filterBrand || 'Pilih Bisnis'}</p><ChevronDown size={14} />
             </button>
             {showBrandDropdown && (
               <div className="absolute top-full left-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden animate-in slide-in-from-top-1">
@@ -416,7 +422,6 @@ const App = () => {
             )}
           </div>
         </div>
-
         <div className="flex items-center gap-4">
           <div className="flex bg-slate-100 p-1 rounded-xl">
             <button onClick={() => setView('calendar')} className={`px-4 py-1.5 rounded-lg transition-all font-bold text-[11px] cursor-pointer ${view === 'calendar' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>Kalender</button>
@@ -455,8 +460,8 @@ const App = () => {
                   const c = filteredContents.find(item => item.date === dStr);
                   return (
                     <div key={d} onClick={() => c ? openEditModal(c) : openAddModal(dStr)} className={`h-24 md:h-32 border-b border-r border-slate-100 p-2 transition-all group flex flex-col cursor-pointer ${c ? getFullBlockStatusClass(c.status) : 'bg-white hover:bg-indigo-50/30'}`}>
-                      <div className="flex justify-between items-start mb-1"><span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-lg ${c ? 'bg-white/20' : 'text-slate-400'}`}>{d}</span>{!c && <Plus size={14} className="opacity-0 group-hover:opacity-100 text-indigo-600" />}</div>
-                      {c && <div className="flex-1 flex flex-col justify-between overflow-hidden"><h3 className="text-[10px] font-bold line-clamp-2 uppercase leading-tight">{c.title}</h3><div className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded font-bold self-start uppercase">{c.type}</div></div>}
+                      <div className="flex justify-between items-start mb-1 text-left"><span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-lg ${c ? 'bg-white/20' : 'text-slate-400'}`}>{d}</span>{!c && <Plus size={14} className="opacity-0 group-hover:opacity-100 text-indigo-600" />}</div>
+                      {c && <div className="flex-1 flex flex-col justify-between overflow-hidden"><h3 className="text-[10px] font-bold line-clamp-2 uppercase leading-tight text-left">{c.title}</h3><div className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded font-bold self-start uppercase">{c.type}</div></div>}
                     </div>
                   );
                 })}
@@ -489,7 +494,6 @@ const App = () => {
                 <h2 className="text-2xl font-bold flex items-center gap-3"><UserCircle size={28} className="text-emerald-600" /> Profil {filterBrand}</h2>
                 <button onClick={() => setIsEditingProfile(!isEditingProfile)} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase cursor-pointer ${isEditingProfile ? 'bg-slate-200' : 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700'}`}>{isEditingProfile ? 'Batal' : 'Edit'}</button>
               </div>
-              
               {isEditingProfile ? (
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4 text-left">
                   <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Deskripsi</label><textarea rows="3" className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-sm font-medium" value={profileForm.description} onChange={e => setProfileForm({...profileForm, description: e.target.value})} /></div>
@@ -503,7 +507,7 @@ const App = () => {
                 <div className="space-y-4">
                   <div className="bg-white rounded-2xl p-6 shadow-sm border text-left"><h3 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Deskripsi</h3><p className="text-sm font-medium italic">"{brandProfiles[filterBrand]?.description || 'Kosong'}"</p></div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-indigo-600 rounded-2xl p-6 text-white text-left"><h3 className="text-[10px] font-bold opacity-70 uppercase mb-2">Platform</h3><p className="text-lg font-bold">{brandProfiles[filterBrand]?.platforms || '-'}</p></div>
+                    <div className="bg-indigo-600 rounded-2xl p-6 text-white text-left"><h3 className="text-[10px] font-bold opacity-70 uppercase mb-2">Platform</h3><p className="text-lg font-bold text-left">{brandProfiles[filterBrand]?.platforms || '-'}</p></div>
                     <div className="bg-white rounded-2xl p-6 shadow-sm border text-left"><h3 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Link</h3>{brandProfiles[filterBrand]?.link ? <a href={brandProfiles[filterBrand].link} target="_blank" className="text-sm font-bold text-indigo-600 hover:underline">Tautan <ExternalLink className="inline ml-1" size={14} /></a> : <p className="text-sm font-bold">-</p>}</div>
                   </div>
                 </div>
@@ -516,8 +520,8 @@ const App = () => {
               <h2 className="text-2xl font-bold flex items-center gap-3 mb-6"><BookOpen size={28} className="text-indigo-600" /> Source Bank</h2>
               <button onClick={() => {setEditingSourceId(null); setSourceForm({url:'', notes:''}); setShowSourceModal(true);}} className="mb-4 bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-[10px] uppercase cursor-pointer hover:bg-indigo-700 flex items-center gap-2 shadow-sm transition-all"><Plus size={14}/> Tambah Referensi</button>
               {filteredSources.length === 0 ? <div className="py-20 text-center text-slate-300 font-bold uppercase text-xs">Belum ada referensi</div> : (
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                   {filteredSources.map(s => (<div key={s.id} className="p-4 border-b flex justify-between items-center hover:bg-indigo-50/20"><div className="flex-1 pr-6"><a href={s.url} target="_blank" className="text-xs font-bold text-indigo-600 truncate block hover:underline">{s.url}</a><p className="text-[10px] text-slate-500 italic mt-0.5">"{s.notes || '-'}"</p></div><div className="flex gap-1"><button onClick={() => {setEditingSourceId(s.id); setSourceForm({...s}); setShowSourceModal(true);}} className="p-2 text-slate-400 hover:text-indigo-600 cursor-pointer"><Pencil size={16}/></button><button onClick={() => setConfirmModal({ show: true, type: 'source', target: s.id })} className="p-2 text-slate-400 hover:text-red-500 cursor-pointer"><Trash2 size={16}/></button></div></div>))}
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm text-left">
+                   {filteredSources.map(s => (<div key={s.id} className="p-4 border-b flex justify-between items-center hover:bg-indigo-50/20 text-left"><div className="flex-1 pr-6 text-left"><a href={s.url} target="_blank" className="text-xs font-bold text-indigo-600 truncate block hover:underline text-left">{s.url}</a><p className="text-[10px] text-slate-500 italic mt-0.5">"{s.notes || '-'}"</p></div><div className="flex gap-1"><button onClick={() => {setEditingSourceId(s.id); setSourceForm({...s}); setShowSourceModal(true);}} className="p-2 text-slate-400 hover:text-indigo-600 cursor-pointer"><Pencil size={16}/></button><button onClick={() => setConfirmModal({ show: true, type: 'source', target: s.id })} className="p-2 text-slate-400 hover:text-red-500 cursor-pointer"><Trash2 size={16}/></button></div></div>))}
                 </div>
               )}
            </div>
@@ -533,19 +537,16 @@ const App = () => {
             <div className="flex-1 p-8 overflow-y-auto border-r border-slate-100 scrollbar-hide text-left">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold uppercase tracking-tight">{editingId ? 'Edit Ide' : 'Ide Baru'}</h2>
-                <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"><X size={24} /></button>
+                <button onClick={() => {setShowModal(false); setEditingId(null); setFormContent(initialFormContent);}} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"><X size={24} /></button>
               </div>
-              
               <form onSubmit={handleFormSubmit} className="space-y-6">
                 <div className="bg-indigo-50 px-3 py-1.5 rounded-lg flex items-center gap-2 w-fit">
                   <Building2 size={14} className="text-indigo-600"/><p className="text-[10px] font-bold text-indigo-900 uppercase">{filterBrand}</p>
                 </div>
-
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest">Judul</label>
                   <input required type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm focus:ring-2 focus:ring-indigo-100" value={formContent.title} onChange={e => setFormContent({...formContent, title: e.target.value})} />
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase block tracking-widest">Tanggal</label>
@@ -556,53 +557,60 @@ const App = () => {
                     <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs outline-none cursor-pointer appearance-none" value={formContent.type} onChange={e => setFormContent({...formContent, type: e.target.value})}><option>Edukasi</option><option>Promosi</option><option>Entertainment</option><option>Testimoni</option><option>Behind the Scene</option></select>
                   </div>
                 </div>
-
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase block tracking-widest">Caption</label>
                   <textarea rows="4" placeholder="..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm outline-none resize-none" value={formContent.caption} onChange={e => setFormContent({...formContent, caption: e.target.value})}></textarea>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                    <Dropdown label="Status" value={formContent.status} onChange={e => setFormContent({...formContent, status: e.target.value})} options={['IDEA', 'READY', 'POSTED']} />
                    <div>
                      <label className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase block tracking-widest text-left">Visual</label>
-                     <input ref={fileInputRef} type="file" className="hidden" onChange={handleImageChange} />
-                     <button type="button" onClick={triggerFileInput} className="w-full p-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl font-bold text-[10px] uppercase hover:bg-slate-100 cursor-pointer">Upload Gambar</button>
+                     <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleImageChange} />
+                     <button type="button" onClick={triggerFileInput} className="w-full p-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl font-bold text-[10px] uppercase hover:bg-slate-100 cursor-pointer">Upload Media</button>
                    </div>
                 </div>
-
-                <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-lg uppercase tracking-widest text-xs hover:bg-indigo-700 active:scale-95 transition-all cursor-pointer">Simpan Rencana</button>
+                <div className="flex gap-3">
+                   {editingId && (
+                     <button type="button" onClick={() => setConfirmModal({show: true, type: 'content', target: editingId})} className="px-6 border-2 border-red-100 text-red-500 rounded-xl font-bold text-[10px] uppercase hover:bg-red-50 cursor-pointer flex items-center gap-2"><Trash2 size={16}/> Hapus</button>
+                   )}
+                   <button type="submit" className="flex-1 bg-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-lg uppercase tracking-widest text-xs hover:bg-indigo-700 active:scale-95 transition-all cursor-pointer">Simpan Rencana</button>
+                </div>
               </form>
             </div>
 
             {/* Preview Side */}
-            <div className="hidden lg:flex flex-[0.7] bg-slate-50 p-6 flex-col items-center justify-center relative">
-              <div className="absolute top-6 left-6 flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-widest">
+            <div className="hidden lg:flex flex-[0.7] bg-slate-50 p-6 flex-col items-center justify-center relative text-left">
+              <div className="absolute top-6 left-6 flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-widest text-left">
                 <Eye size={12} /> Live Preview
               </div>
-              
               <div className="w-[260px] h-[520px] bg-white rounded-[2.5rem] shadow-xl border-[10px] border-slate-900 overflow-hidden flex flex-col text-left">
-                {/* Visual Preview */}
-                <div className="h-2/3 bg-slate-100 flex items-center justify-center relative overflow-hidden">
+                {/* Visual Preview with Carousel */}
+                <div className="h-2/3 bg-slate-100 flex items-center justify-center relative overflow-hidden text-left">
                   {formContent.images?.length > 0 ? (
-                    <img src={formContent.images[0]} className="w-full h-full object-cover" alt="Preview" />
+                    <>
+                      <img src={formContent.images[currentImgIdx]} className="w-full h-full object-cover" alt="Preview" />
+                      {formContent.images.length > 1 && (
+                        <div className="absolute inset-0 flex items-center justify-between px-2">
+                           <button onClick={(e) => {e.preventDefault(); setCurrentImgIdx(prev => prev === 0 ? formContent.images.length - 1 : prev - 1)}} className="w-6 h-6 bg-white/80 rounded-full flex items-center justify-center text-indigo-600 cursor-pointer shadow-sm"><ChevronLeft size={16}/></button>
+                           <button onClick={(e) => {e.preventDefault(); setCurrentImgIdx(prev => prev === formContent.images.length - 1 ? 0 : prev + 1)}} className="w-6 h-6 bg-white/80 rounded-full flex items-center justify-center text-indigo-600 cursor-pointer shadow-sm"><ChevronRight size={16}/></button>
+                        </div>
+                      )}
+                      <div className="absolute bottom-3 right-3 bg-black/50 px-2 py-0.5 rounded-full text-white text-[8px] font-bold">{currentImgIdx + 1}/{formContent.images.length}</div>
+                    </>
                   ) : (
                     <div className="text-center text-slate-300">
-                      <ImageIcon size={40} strokeWidth={1} />
-                      <p className="text-[8px] font-bold uppercase tracking-widest mt-2">Belum ada visual</p>
+                      <ImageIcon size={40} strokeWidth={1} /><p className="text-[8px] font-bold uppercase tracking-widest mt-2 text-center">Belum ada visual</p>
                     </div>
                   )}
                   <div className="absolute top-3 left-3 bg-black/40 px-2 py-1 rounded-md text-white font-bold text-[7px] uppercase backdrop-blur-sm">{formContent.type}</div>
                 </div>
-
-                {/* Caption Preview */}
-                <div className="p-4 flex-1 overflow-y-auto bg-white border-t border-slate-100 scrollbar-hide">
-                  <div className="flex items-center gap-2 mb-2">
+                <div className="p-4 flex-1 overflow-y-auto bg-white border-t border-slate-100 scrollbar-hide text-left">
+                  <div className="flex items-center gap-2 mb-2 text-left">
                     <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-[8px] uppercase">{filterBrand ? filterBrand.charAt(0) : 'P'}</div>
-                    <p className="text-[9px] font-bold">{filterBrand || 'Brand Anda'}</p>
+                    <p className="text-[9px] font-bold text-left">{filterBrand || 'Brand Anda'}</p>
                   </div>
-                  <h4 className="text-[10px] font-bold uppercase mb-1 leading-tight">{formContent.title || 'Judul Konten'}</h4>
-                  <p className="text-[9px] text-slate-500 leading-normal whitespace-pre-wrap">{formContent.caption || 'Naskah caption akan tampil di sini...'}</p>
+                  <h4 className="text-[10px] font-bold uppercase mb-1 leading-tight text-left">{formContent.title || 'Judul Konten'}</h4>
+                  <p className="text-[9px] text-slate-500 leading-normal whitespace-pre-wrap text-left">{formContent.caption || 'Naskah caption akan tampil di sini...'}</p>
                 </div>
               </div>
             </div>
@@ -627,7 +635,7 @@ const App = () => {
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 space-y-6 animate-in zoom-in text-center">
             <h2 className="text-xl font-bold uppercase">Bisnis Baru</h2>
-            <input required autoFocus type="text" placeholder="..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm text-center" value={newBrandName} onChange={e => setNewBrandName(e.target.value)} />
+            <input required autoFocus type="text" placeholder="..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm text-center shadow-inner" value={newBrandName} onChange={e => setNewBrandName(e.target.value)} />
             <div className="flex gap-3"><button onClick={() => setShowAddBrandModal(false)} className="flex-1 py-3 bg-slate-100 rounded-xl font-bold uppercase text-[10px] cursor-pointer">Batal</button><button onClick={handleAddBrand} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold uppercase text-[10px] shadow-md hover:bg-indigo-700 cursor-pointer">Simpan</button></div>
           </div>
         </div>
@@ -635,12 +643,12 @@ const App = () => {
 
       {/* MODAL SOURCE BARU */}
       {showSourceModal && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4 text-left">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 space-y-6 animate-in zoom-in text-left">
-            <h2 className="text-xl font-bold uppercase">{editingSourceId ? 'Edit' : 'Tambah'} Source</h2>
-            <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Link URL</label><input required autoFocus type="url" placeholder="https://..." className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-xs font-bold" value={sourceForm.url} onChange={e => setSourceForm({ ...sourceForm, url: e.target.value })} /></div>
-            <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Catatan</label><textarea rows="3" className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-xs font-medium resize-none" value={sourceForm.notes} onChange={e => setSourceForm({ ...sourceForm, notes: e.target.value })}></textarea></div>
-            <button onClick={handleSourceSubmit} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl uppercase text-[10px] tracking-widest hover:bg-indigo-700 cursor-pointer shadow-md">Simpan ke Bank Ide</button>
+            <h2 className="text-xl font-bold uppercase">Source Bank</h2>
+            <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Link URL</label><input required autoFocus type="url" placeholder="https://..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" value={sourceForm.url} onChange={e => setSourceForm({ ...sourceForm, url: e.target.value })} /></div>
+            <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Catatan</label><textarea rows="3" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-medium resize-none" value={sourceForm.notes} onChange={e => setSourceForm({ ...sourceForm, notes: e.target.value })}></textarea></div>
+            <button onClick={handleSourceSubmit} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl uppercase text-[10px] tracking-widest hover:bg-indigo-700 cursor-pointer shadow-md">Simpan Referensi</button>
             <button onClick={() => setShowSourceModal(false)} className="w-full py-2 text-slate-400 font-bold uppercase text-[9px] cursor-pointer text-center">Batal</button>
           </div>
         </div>
