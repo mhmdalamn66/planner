@@ -240,7 +240,7 @@ const App = () => {
         if (filterBrand === confirmModal.target) setFilterBrand(brands.find(b => b !== confirmModal.target) || '');
       } else if (confirmModal.type === 'content') {
         await deleteDoc(doc(db, ...path, 'contents', confirmModal.target));
-        setShowModal(false); // Pastikan modal tertutup jika menghapus via modal
+        setShowModal(false); 
       } else if (confirmModal.type === 'source') {
         await deleteDoc(doc(db, ...path, 'sources', confirmModal.target));
       }
@@ -271,10 +271,10 @@ const App = () => {
       } else {
         await addDoc(col, formContent);
       }
-      // RESET & CLOSE
-      setFormContent(initialFormContent);
-      setEditingId(null);
+      // PENTING: Tutup modal dan reset formulir agar tidak menggantung
       setShowModal(false);
+      setEditingId(null);
+      setFormContent(initialFormContent);
     } catch (err) { 
       console.error("Simpan Gagal:", err); 
     }
@@ -367,11 +367,11 @@ const App = () => {
               <button onClick={() => {setAuthMode('register'); setAuthError('');}} className={`flex-1 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${authMode === 'register' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>DAFTAR</button>
             </div>
             <div className="space-y-3">
-              <div className="relative">
+              <div className="relative text-left">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
                 <input type="email" placeholder="Email" className="w-full p-3.5 pl-11 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm focus:ring-2 focus:ring-indigo-100" value={email} onChange={e => setEmail(e.target.value)} />
               </div>
-              <div className="relative">
+              <div className="relative text-left">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
                 <input type="password" placeholder="Password" className="w-full p-3.5 pl-11 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm focus:ring-2 focus:ring-indigo-100" value={password} onChange={e => setPassword(e.target.value)} />
               </div>
@@ -397,7 +397,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800 text-left">
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col lg:flex-row justify-between items-center gap-4 sticky top-0 z-40 shadow-sm">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 text-left">
           <div className="bg-indigo-600 p-2 rounded-lg text-white"><CalendarIcon size={24} /></div>
           <div className="text-left">
             <h1 className="text-lg font-bold tracking-tight uppercase leading-none">Planner Pro</h1>
@@ -408,11 +408,11 @@ const App = () => {
               <Building2 size={18} className="text-indigo-600" /><p className="text-sm font-bold">{filterBrand || 'Pilih Bisnis'}</p><ChevronDown size={14} />
             </button>
             {showBrandDropdown && (
-              <div className="absolute top-full left-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden animate-in slide-in-from-top-1">
+              <div className="absolute top-full left-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden animate-in slide-in-from-top-1 text-left">
                 <div className="max-h-60 overflow-y-auto">
                   {brands.map((brand) => (
                     <div key={brand} onClick={() => { setFilterBrand(brand); setShowBrandDropdown(false); }} className={`p-3 cursor-pointer transition-all border-b border-slate-50 flex justify-between items-center hover:bg-indigo-50 ${filterBrand === brand ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700'} text-xs`}>
-                      <span className="truncate flex-1">{brand}</span>
+                      <span className="truncate flex-1 text-left">{brand}</span>
                       <button onClick={(e) => handleDeleteBrand(e, brand)} className="p-1.5 text-slate-300 hover:text-red-500 cursor-pointer"><Trash2 size={14}/></button>
                     </div>
                   ))}
@@ -432,13 +432,13 @@ const App = () => {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-64 bg-white border-r border-slate-200 hidden lg:block p-6">
+        <aside className="w-64 bg-white border-r border-slate-200 hidden lg:block p-6 text-left">
           <div className="space-y-2">
-            <button onClick={() => setView('calendar')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer text-xs font-bold text-left ${view === 'calendar' || view === 'list' ? 'bg-slate-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><LayoutDashboard size={18} /> SCHEDULE</button>
+            <button onClick={() => setView('calendar')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer text-xs font-bold text-left ${view === 'calendar' || view === 'list' ? 'bg-slate-50 text-indigo-700 font-bold' : 'text-slate-500 hover:bg-slate-50'}`}><LayoutDashboard size={18} /> SCHEDULE</button>
             <button onClick={() => setView('sourceBank')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer text-xs font-bold text-left ${view === 'sourceBank' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><BookOpen size={18} /> SOURCE BANK</button>
             <button onClick={() => setView('profile')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer text-xs font-bold text-left ${view === 'profile' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><UserCircle size={18} /> PROFIL</button>
           </div>
-          <div className="mt-10 pt-6 border-t"><button onClick={() => signOut(auth)} className="w-full flex items-center gap-3 p-3 text-red-500 font-bold hover:bg-red-50 rounded-xl cursor-pointer text-xs"><LogOut size={18} /> KELUAR</button></div>
+          <div className="mt-10 pt-6 border-t text-left"><button onClick={() => signOut(auth)} className="w-full flex items-center gap-3 p-3 text-red-500 font-bold hover:bg-red-50 rounded-xl cursor-pointer text-xs"><LogOut size={18} /> KELUAR</button></div>
         </aside>
 
         <main className="flex-1 p-6 md:p-8 overflow-y-auto text-left">
@@ -447,21 +447,21 @@ const App = () => {
               <div className="p-6 flex items-center justify-between border-b bg-slate-50/20">
                 <h2 className="text-xl font-bold text-slate-900 uppercase tracking-tight">{selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
                 <div className="flex gap-2">
-                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1))} className="p-2 bg-white border rounded-lg hover:text-indigo-600 cursor-pointer"><ChevronLeft size={20}/></button>
-                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1))} className="p-2 bg-white border rounded-lg hover:text-indigo-600 cursor-pointer"><ChevronRight size={20}/></button>
+                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1))} className="p-2 bg-white border rounded-lg hover:text-indigo-600 cursor-pointer text-left"><ChevronLeft size={20}/></button>
+                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1))} className="p-2 bg-white border rounded-lg hover:text-indigo-600 cursor-pointer text-left"><ChevronRight size={20}/></button>
                 </div>
               </div>
               <div className="grid grid-cols-7 border-b bg-slate-50/50">{['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(day => (<div key={day} className="py-3 text-center text-[10px] font-bold text-slate-400 uppercase">{day}</div>))}</div>
-              <div className="grid grid-cols-7">
+              <div className="grid grid-cols-7 text-left">
                 {[...Array(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay())].map((_, i) => (<div key={i} className="h-24 md:h-32 border-b border-r border-slate-100 bg-slate-50/5"></div>))}
                 {[...Array(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate())].map((_, i) => {
                   const d = i + 1;
                   const dStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                   const c = filteredContents.find(item => item.date === dStr);
                   return (
-                    <div key={d} onClick={() => c ? openEditModal(c) : openAddModal(dStr)} className={`h-24 md:h-32 border-b border-r border-slate-100 p-2 transition-all group flex flex-col cursor-pointer ${c ? getFullBlockStatusClass(c.status) : 'bg-white hover:bg-indigo-50/30'}`}>
+                    <div key={d} onClick={() => c ? openEditModal(c) : openAddModal(dStr)} className={`h-24 md:h-32 border-b border-r border-slate-100 p-2 transition-all group flex flex-col cursor-pointer ${c ? getFullBlockStatusClass(c.status) : 'bg-white hover:bg-indigo-50/30'} text-left`}>
                       <div className="flex justify-between items-start mb-1 text-left"><span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-lg ${c ? 'bg-white/20' : 'text-slate-400'}`}>{d}</span>{!c && <Plus size={14} className="opacity-0 group-hover:opacity-100 text-indigo-600" />}</div>
-                      {c && <div className="flex-1 flex flex-col justify-between overflow-hidden"><h3 className="text-[10px] font-bold line-clamp-2 uppercase leading-tight text-left">{c.title}</h3><div className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded font-bold self-start uppercase">{c.type}</div></div>}
+                      {c && <div className="flex-1 flex flex-col justify-between overflow-hidden text-left"><h3 className="text-[10px] font-bold line-clamp-2 uppercase leading-tight">{c.title}</h3><div className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded font-bold self-start uppercase">{c.type}</div></div>}
                     </div>
                   );
                 })}
@@ -473,7 +473,7 @@ const App = () => {
             <div className="space-y-3 animate-in fade-in">
               {filteredContents.length === 0 ? <div className="py-20 text-center font-bold text-slate-300 uppercase text-sm">Belum Ada Konten</div> : 
                 filteredContents.sort((a,b) => new Date(a.date) - new Date(b.date)).map(c => (
-                  <div key={c.id} className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 hover:shadow-md transition-all group">
+                  <div key={c.id} className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 hover:shadow-md transition-all group text-left">
                     <div className="flex-1 text-left"><h3 className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 uppercase">{c.title}</h3><p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{c.date} • {c.type}</p></div>
                     <div className="flex items-center gap-3">
                       <select value={c.status} onChange={(e) => updateStatus(c.id, e.target.value)} className="text-[10px] font-bold px-3 py-1.5 rounded-lg border outline-none cursor-pointer">
@@ -496,19 +496,19 @@ const App = () => {
               </div>
               {isEditingProfile ? (
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4 text-left">
-                  <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Deskripsi</label><textarea rows="3" className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-sm font-medium" value={profileForm.description} onChange={e => setProfileForm({...profileForm, description: e.target.value})} /></div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Platform</label><input type="text" className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-sm font-bold" value={profileForm.platforms} onChange={e => setProfileForm({...profileForm, platforms: e.target.value})} /></div>
-                    <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Link</label><input type="url" className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-sm font-bold text-indigo-600" value={profileForm.link} onChange={e => setProfileForm({...profileForm, link: e.target.value})} /></div>
+                  <div className="text-left"><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Deskripsi</label><textarea rows="3" className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-sm font-medium" value={profileForm.description} onChange={e => setProfileForm({...profileForm, description: e.target.value})} /></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <div className="text-left"><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Platform</label><input type="text" className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-sm font-bold" value={profileForm.platforms} onChange={e => setProfileForm({...profileForm, platforms: e.target.value})} /></div>
+                    <div className="text-left"><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Link</label><input type="url" className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-sm font-bold text-indigo-600" value={profileForm.link} onChange={e => setProfileForm({...profileForm, link: e.target.value})} /></div>
                   </div>
                   <button onClick={handleSaveProfile} className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-md text-xs uppercase cursor-pointer flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all"><Save size={16}/> Simpan</button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="bg-white rounded-2xl p-6 shadow-sm border text-left"><h3 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Deskripsi</h3><p className="text-sm font-medium italic">"{brandProfiles[filterBrand]?.description || 'Kosong'}"</p></div>
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4 text-left">
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border text-left"><h3 className="text-[10px] font-bold text-slate-400 uppercase mb-2 text-left">Deskripsi</h3><p className="text-sm font-medium italic text-left">"{brandProfiles[filterBrand]?.description || 'Kosong'}"</p></div>
+                  <div className="grid grid-cols-2 gap-4 text-left">
                     <div className="bg-indigo-600 rounded-2xl p-6 text-white text-left"><h3 className="text-[10px] font-bold opacity-70 uppercase mb-2">Platform</h3><p className="text-lg font-bold text-left">{brandProfiles[filterBrand]?.platforms || '-'}</p></div>
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border text-left"><h3 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Link</h3>{brandProfiles[filterBrand]?.link ? <a href={brandProfiles[filterBrand].link} target="_blank" className="text-sm font-bold text-indigo-600 hover:underline">Tautan <ExternalLink className="inline ml-1" size={14} /></a> : <p className="text-sm font-bold">-</p>}</div>
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border text-left text-left"><h3 className="text-[10px] font-bold text-slate-400 uppercase mb-2 text-left">Link</h3>{brandProfiles[filterBrand]?.link ? <a href={brandProfiles[filterBrand].link} target="_blank" className="text-sm font-bold text-indigo-600 hover:underline">Tautan <ExternalLink className="inline ml-1" size={14} /></a> : <p className="text-sm font-bold">-</p>}</div>
                   </div>
                 </div>
               )}
@@ -516,12 +516,12 @@ const App = () => {
           )}
 
           {view === 'sourceBank' && (
-            <div className="animate-in slide-in-from-bottom-2 text-left">
-              <h2 className="text-2xl font-bold flex items-center gap-3 mb-6"><BookOpen size={28} className="text-indigo-600" /> Source Bank</h2>
-              <button onClick={() => {setEditingSourceId(null); setSourceForm({url:'', notes:''}); setShowSourceModal(true);}} className="mb-4 bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-[10px] uppercase cursor-pointer hover:bg-indigo-700 flex items-center gap-2 shadow-sm transition-all"><Plus size={14}/> Tambah Referensi</button>
+            <div className="animate-in slide-in-from-bottom-2 text-left text-left">
+              <h2 className="text-2xl font-bold flex items-center gap-3 mb-6 text-left"><BookOpen size={28} className="text-indigo-600" /> Source Bank</h2>
+              <button onClick={() => {setEditingSourceId(null); setSourceForm({url:'', notes:''}); setShowSourceModal(true);}} className="mb-4 bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-[10px] uppercase cursor-pointer hover:bg-indigo-700 flex items-center gap-2 shadow-sm transition-all text-left"><Plus size={14}/> Tambah Referensi</button>
               {filteredSources.length === 0 ? <div className="py-20 text-center text-slate-300 font-bold uppercase text-xs">Belum ada referensi</div> : (
                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm text-left">
-                   {filteredSources.map(s => (<div key={s.id} className="p-4 border-b flex justify-between items-center hover:bg-indigo-50/20 text-left"><div className="flex-1 pr-6 text-left"><a href={s.url} target="_blank" className="text-xs font-bold text-indigo-600 truncate block hover:underline text-left">{s.url}</a><p className="text-[10px] text-slate-500 italic mt-0.5">"{s.notes || '-'}"</p></div><div className="flex gap-1"><button onClick={() => {setEditingSourceId(s.id); setSourceForm({...s}); setShowSourceModal(true);}} className="p-2 text-slate-400 hover:text-indigo-600 cursor-pointer"><Pencil size={16}/></button><button onClick={() => setConfirmModal({ show: true, type: 'source', target: s.id })} className="p-2 text-slate-400 hover:text-red-500 cursor-pointer"><Trash2 size={16}/></button></div></div>))}
+                   {filteredSources.map(s => (<div key={s.id} className="p-4 border-b flex justify-between items-center hover:bg-indigo-50/20 text-left"><div className="flex-1 pr-6 text-left text-left"><a href={s.url} target="_blank" className="text-xs font-bold text-indigo-600 truncate block hover:underline text-left">{s.url}</a><p className="text-[10px] text-slate-500 italic mt-0.5 text-left text-left">"{s.notes || '-'}"</p></div><div className="flex gap-1 text-left text-left"><button onClick={() => {setEditingSourceId(s.id); setSourceForm({...s}); setShowSourceModal(true);}} className="p-2 text-slate-400 hover:text-indigo-600 cursor-pointer text-left"><Pencil size={16}/></button><button onClick={() => setConfirmModal({ show: true, type: 'source', target: s.id })} className="p-2 text-slate-400 hover:text-red-500 cursor-pointer text-left"><Trash2 size={16}/></button></div></div>))}
                 </div>
               )}
            </div>
@@ -544,26 +544,26 @@ const App = () => {
                   <Building2 size={14} className="text-indigo-600"/><p className="text-[10px] font-bold text-indigo-900 uppercase">{filterBrand}</p>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest">Judul</label>
-                  <input required type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm focus:ring-2 focus:ring-indigo-100" value={formContent.title} onChange={e => setFormContent({...formContent, title: e.target.value})} />
+                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest text-left">Judul</label>
+                  <input required type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm focus:ring-2 focus:ring-indigo-100 text-left" value={formContent.title} onChange={e => setFormContent({...formContent, title: e.target.value})} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="text-left">
                     <label className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase block tracking-widest">Tanggal</label>
                     <input type="date" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs outline-none" value={formContent.date} onChange={e => setFormContent({...formContent, date: e.target.value})} />
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase block tracking-widest">Pillar</label>
                     <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs outline-none cursor-pointer appearance-none" value={formContent.type} onChange={e => setFormContent({...formContent, type: e.target.value})}><option>Edukasi</option><option>Promosi</option><option>Entertainment</option><option>Testimoni</option><option>Behind the Scene</option></select>
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase block tracking-widest">Caption</label>
-                  <textarea rows="4" placeholder="..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm outline-none resize-none" value={formContent.caption} onChange={e => setFormContent({...formContent, caption: e.target.value})}></textarea>
+                  <label className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase block tracking-widest text-left">Caption</label>
+                  <textarea rows="4" placeholder="..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm outline-none resize-none text-left" value={formContent.caption} onChange={e => setFormContent({...formContent, caption: e.target.value})}></textarea>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                    <Dropdown label="Status" value={formContent.status} onChange={e => setFormContent({...formContent, status: e.target.value})} options={['IDEA', 'READY', 'POSTED']} />
-                   <div>
+                   <div className="text-left">
                      <label className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase block tracking-widest text-left">Visual</label>
                      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleImageChange} />
                      <button type="button" onClick={triggerFileInput} className="w-full p-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl font-bold text-[10px] uppercase hover:bg-slate-100 cursor-pointer">Upload Media</button>
@@ -578,39 +578,39 @@ const App = () => {
               </form>
             </div>
 
-            {/* Preview Side */}
-            <div className="hidden lg:flex flex-[0.7] bg-slate-50 p-6 flex-col items-center justify-center relative text-left">
-              <div className="absolute top-6 left-6 flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-widest text-left">
+            {/* Preview Side - Kotak Preview Sederhana */}
+            <div className="hidden lg:flex flex-[0.7] bg-slate-50 p-8 flex-col items-center justify-center relative text-left">
+              <div className="absolute top-6 left-6 flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-widest">
                 <Eye size={12} /> Live Preview
               </div>
-              <div className="w-[260px] h-[520px] bg-white rounded-[2.5rem] shadow-xl border-[10px] border-slate-900 overflow-hidden flex flex-col text-left">
+              <div className="w-[300px] bg-white rounded-xl shadow-xl overflow-hidden flex flex-col text-left border border-slate-200">
                 {/* Visual Preview with Carousel */}
-                <div className="h-2/3 bg-slate-100 flex items-center justify-center relative overflow-hidden text-left">
+                <div className="aspect-square bg-slate-100 flex items-center justify-center relative overflow-hidden text-left">
                   {formContent.images?.length > 0 ? (
                     <>
                       <img src={formContent.images[currentImgIdx]} className="w-full h-full object-cover" alt="Preview" />
                       {formContent.images.length > 1 && (
                         <div className="absolute inset-0 flex items-center justify-between px-2">
-                           <button onClick={(e) => {e.preventDefault(); setCurrentImgIdx(prev => prev === 0 ? formContent.images.length - 1 : prev - 1)}} className="w-6 h-6 bg-white/80 rounded-full flex items-center justify-center text-indigo-600 cursor-pointer shadow-sm"><ChevronLeft size={16}/></button>
-                           <button onClick={(e) => {e.preventDefault(); setCurrentImgIdx(prev => prev === formContent.images.length - 1 ? 0 : prev + 1)}} className="w-6 h-6 bg-white/80 rounded-full flex items-center justify-center text-indigo-600 cursor-pointer shadow-sm"><ChevronRight size={16}/></button>
+                           <button onClick={(e) => {e.preventDefault(); setCurrentImgIdx(prev => prev === 0 ? formContent.images.length - 1 : prev - 1)}} className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center text-indigo-600 cursor-pointer shadow-sm border border-slate-100"><ChevronLeft size={14}/></button>
+                           <button onClick={(e) => {e.preventDefault(); setCurrentImgIdx(prev => prev === formContent.images.length - 1 ? 0 : prev + 1)}} className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center text-indigo-600 cursor-pointer shadow-sm border border-slate-100"><ChevronRight size={14}/></button>
                         </div>
                       )}
-                      <div className="absolute bottom-3 right-3 bg-black/50 px-2 py-0.5 rounded-full text-white text-[8px] font-bold">{currentImgIdx + 1}/{formContent.images.length}</div>
+                      <div className="absolute bottom-2 right-2 bg-black/50 px-2 py-0.5 rounded-full text-white text-[8px] font-bold">{currentImgIdx + 1}/{formContent.images.length}</div>
                     </>
                   ) : (
                     <div className="text-center text-slate-300">
-                      <ImageIcon size={40} strokeWidth={1} /><p className="text-[8px] font-bold uppercase tracking-widest mt-2 text-center">Belum ada visual</p>
+                      <ImageIcon size={40} strokeWidth={1} /><p className="text-[8px] font-bold uppercase tracking-widest mt-2">Belum ada visual</p>
                     </div>
                   )}
-                  <div className="absolute top-3 left-3 bg-black/40 px-2 py-1 rounded-md text-white font-bold text-[7px] uppercase backdrop-blur-sm">{formContent.type}</div>
                 </div>
-                <div className="p-4 flex-1 overflow-y-auto bg-white border-t border-slate-100 scrollbar-hide text-left">
-                  <div className="flex items-center gap-2 mb-2 text-left">
+                <div className="p-4 bg-white text-left">
+                  <div className="flex items-center gap-2 mb-3 text-left">
                     <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-[8px] uppercase">{filterBrand ? filterBrand.charAt(0) : 'P'}</div>
-                    <p className="text-[9px] font-bold text-left">{filterBrand || 'Brand Anda'}</p>
+                    <p className="text-[10px] font-black text-slate-900">{filterBrand || 'Nama Brand'}</p>
                   </div>
-                  <h4 className="text-[10px] font-bold uppercase mb-1 leading-tight text-left">{formContent.title || 'Judul Konten'}</h4>
-                  <p className="text-[9px] text-slate-500 leading-normal whitespace-pre-wrap text-left">{formContent.caption || 'Naskah caption akan tampil di sini...'}</p>
+                  <p className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-wrap font-medium">
+                    {formContent.caption || 'Naskah caption akan muncul di sini...'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -646,8 +646,8 @@ const App = () => {
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4 text-left">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 space-y-6 animate-in zoom-in text-left">
             <h2 className="text-xl font-bold uppercase">Source Bank</h2>
-            <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Link URL</label><input required autoFocus type="url" placeholder="https://..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" value={sourceForm.url} onChange={e => setSourceForm({ ...sourceForm, url: e.target.value })} /></div>
-            <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Catatan</label><textarea rows="3" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-medium resize-none" value={sourceForm.notes} onChange={e => setSourceForm({ ...sourceForm, notes: e.target.value })}></textarea></div>
+            <div className="text-left"><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Link URL</label><input required autoFocus type="url" placeholder="https://..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" value={sourceForm.url} onChange={e => setSourceForm({ ...sourceForm, url: e.target.value })} /></div>
+            <div className="text-left"><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Catatan</label><textarea rows="3" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-medium resize-none" value={sourceForm.notes} onChange={e => setSourceForm({ ...sourceForm, notes: e.target.value })}></textarea></div>
             <button onClick={handleSourceSubmit} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl uppercase text-[10px] tracking-widest hover:bg-indigo-700 cursor-pointer shadow-md">Simpan Referensi</button>
             <button onClick={() => setShowSourceModal(false)} className="w-full py-2 text-slate-400 font-bold uppercase text-[9px] cursor-pointer text-center">Batal</button>
           </div>
