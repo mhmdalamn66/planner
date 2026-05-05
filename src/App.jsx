@@ -43,7 +43,9 @@ import {
   UserCheck,
   LayoutDashboard,
   ExternalLink,
-  Smartphone
+  Smartphone,
+  Image as ImageIcon,
+  Save
 } from 'lucide-react';
 
 // --- (1) KONFIGURASI FIREBASE ---
@@ -73,10 +75,10 @@ const typeBadgeColorMap = {
 };
 
 const App = () => {
-  // --- SEMUA HOOK HARUS DI ATAS ---
+  // --- STATE MANAGEMENT ---
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [authMode, setAuthMode] = useState('login'); // Mode: 'login' atau 'register'
+  const [authMode, setAuthMode] = useState('login'); 
   const [authError, setAuthError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -109,7 +111,26 @@ const App = () => {
   const [formContent, setFormContent] = useState({ title: '', brand: '', type: 'Edukasi', date: '', status: 'IDEA', caption: '', images: [] });
   const [sourceForm, setSourceForm] = useState({ url: '', notes: '', brand: '' });
 
-  // Filter Data menggunakan useMemo
+  // --- HELPER FUNCTIONS (UNTUK MENCEGAH CRASH) ---
+  const getFullBlockStatusClass = (status) => {
+    switch (status) {
+      case 'IDEA': return 'bg-blue-500 text-white border-blue-600';
+      case 'READY': return 'bg-orange-500 text-white border-orange-600';
+      case 'POSTED': return 'bg-green-700 text-white border-green-800';
+      default: return 'bg-white text-slate-800 border-slate-200';
+    }
+  };
+
+  const getStatusIcon = (status, size = 12) => {
+    switch (status) {
+      case 'IDEA': return <Circle size={size} />;
+      case 'READY': return <Clock size={size} />;
+      case 'POSTED': return <CheckCircle2 size={size} />;
+      default: return null;
+    }
+  };
+
+  // --- LOGIC HOOKS ---
   const filteredContents = useMemo(() => {
     return contents.filter(c => 
       c.brand === filterBrand && 
@@ -122,7 +143,6 @@ const App = () => {
     return sources.filter(s => s.brand === filterBrand);
   }, [sources, filterBrand]);
 
-  // Auth Effect
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -131,7 +151,6 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
-  // Data Sync Effect
   useEffect(() => {
     if (!user || !db) return;
     const path = ['artifacts', appId, 'users', user.uid];
@@ -158,7 +177,6 @@ const App = () => {
     return () => { unsubBrands(); unsubContents(); unsubSources(); unsubProfiles(); };
   }, [user, filterBrand]);
 
-  // Sync Profile Form saat brand berubah
   useEffect(() => {
     if (brandProfiles[filterBrand]) {
       setProfileForm(brandProfiles[filterBrand]);
@@ -167,7 +185,7 @@ const App = () => {
     }
   }, [filterBrand, brandProfiles]);
 
-  // --- HANDLERS ---
+  // --- EVENT HANDLERS ---
   const handleAuth = async (e) => {
     e.preventDefault();
     setAuthError('');
@@ -216,6 +234,8 @@ const App = () => {
         if (filterBrand === confirmModal.target) setFilterBrand(brands.find(b => b !== confirmModal.target) || '');
       } else if (confirmModal.type === 'content') {
         await deleteDoc(doc(db, ...path, 'contents', confirmModal.target));
+      } else if (confirmModal.type === 'source') {
+        await deleteDoc(doc(db, ...path, 'sources', confirmModal.target));
       }
       setConfirmModal({ show: false, type: '', target: null });
     } catch (err) { console.error(err); }
@@ -234,8 +254,19 @@ const App = () => {
     const col = collection(db, 'artifacts', appId, 'users', user.uid, 'contents');
     try {
       if (editingId) await updateDoc(doc(col, editingId), formContent);
-      else await addDoc(col, data); // Note: Fix 'data' variable if undefined, using formContent
+      else await addDoc(col, formContent);
       setShowModal(false);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleSourceSubmit = async (e) => {
+    e.preventDefault();
+    if (!user) return;
+    const col = collection(db, 'artifacts', appId, 'users', user.uid, 'sources');
+    try {
+      if (editingSourceId) await updateDoc(doc(col, editingSourceId), sourceForm);
+      else await addDoc(col, { ...sourceForm, brand: filterBrand });
+      setShowSourceModal(false);
     } catch (err) { console.error(err); }
   };
 
@@ -254,8 +285,19 @@ const App = () => {
     } catch (err) { console.error(err); }
   };
 
-  // --- RENDERING LOGIC ---
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => setFormContent(prev => ({ ...prev, images: [...prev.images, reader.result] }));
+      reader.readAsDataURL(file);
+    });
+  };
 
+  const triggerFileInput = () => fileInputRef.current?.click();
+  const removeImage = (idx) => setFormContent(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }));
+
+  // --- RENDER LOGIC ---
   if (firebaseConfig.apiKey === "MASUKKAN_API_KEY_ANDA") {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-10 text-center">
@@ -302,15 +344,15 @@ const App = () => {
             <div className="space-y-4">
               <div className="relative">
                 <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                <input type="email" placeholder="Email" className="w-full p-5 pl-14 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:ring-4 focus:ring-indigo-50" value={email} onChange={e => setEmail(e.target.value)} />
+                <input type="email" placeholder="Email" className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold pl-14 focus:ring-4 focus:ring-indigo-50" value={email} onChange={e => setEmail(e.target.value)} />
               </div>
               <div className="relative">
                 <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                <input type="password" placeholder="Password" className="w-full p-5 pl-14 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:ring-4 focus:ring-indigo-50" value={password} onChange={e => setPassword(e.target.value)} />
+                <input type="password" placeholder="Password" className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold pl-14 focus:ring-4 focus:ring-indigo-50" value={password} onChange={e => setPassword(e.target.value)} />
               </div>
             </div>
 
-            <button onClick={handleAuth} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100 cursor-pointer">
+            <button onClick={handleAuth} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100 cursor-pointer tracking-widest">
               {authMode === 'login' ? 'MASUK SEKARANG' : 'DAFTAR SEKARANG'}
             </button>
 
@@ -328,6 +370,16 @@ const App = () => {
       </div>
     );
   }
+
+  const Dropdown = ({ label, value, onChange, options, small = false }) => (
+    <div className="relative w-full text-left">
+      {label && <label className="block text-sm font-black text-slate-400 mb-2 uppercase tracking-widest">{label}</label>}
+      <select className={`w-full ${small ? 'p-3 text-sm' : 'p-4 text-base'} bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold appearance-none cursor-pointer focus:ring-4 focus:ring-indigo-100 transition-all shadow-sm`} value={value} onChange={onChange}>
+        {options.map((opt, idx) => (<option key={idx} value={typeof opt === 'object' ? opt.value : opt}>{typeof opt === 'object' ? opt.label : opt}</option>))}
+      </select>
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 mt-3"><ChevronDown size={18} /></div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
@@ -373,9 +425,9 @@ const App = () => {
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-80 bg-white border-r border-slate-200 hidden lg:block p-8 overflow-y-auto">
           <div className="space-y-3">
-            <button onClick={() => setView('calendar')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'calendar' || view === 'list' ? 'bg-slate-50 text-indigo-700 shadow-sm border border-slate-100 font-black text-left' : 'text-slate-500 hover:bg-slate-50 font-bold text-left'}`}><LayoutDashboard size={24} /> SCHEDULE</button>
-            <button onClick={() => setView('sourceBank')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'sourceBank' ? 'bg-indigo-600 text-white shadow-lg font-black text-left' : 'text-slate-500 hover:bg-slate-50 font-bold text-left'}`}><BookOpen size={24} /> SOURCE BANK</button>
-            <button onClick={() => setView('profile')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'profile' ? 'bg-emerald-600 text-white shadow-lg font-black text-left' : 'text-slate-500 hover:bg-slate-50 font-bold text-left'}`}><UserCircle size={24} /> PROFIL</button>
+            <button onClick={() => setView('calendar')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'calendar' || view === 'list' ? 'bg-slate-50 text-indigo-700 font-black text-left' : 'text-slate-500 hover:bg-slate-50 font-bold text-left'}`}><LayoutDashboard size={24} /> SCHEDULE</button>
+            <button onClick={() => setView('sourceBank')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'sourceBank' ? 'bg-indigo-600 text-white font-black text-left' : 'text-slate-500 hover:bg-slate-50 font-bold text-left'}`}><BookOpen size={24} /> SOURCE BANK</button>
+            <button onClick={() => setView('profile')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'profile' ? 'bg-emerald-600 text-white font-black text-left' : 'text-slate-500 hover:bg-slate-50 font-bold text-left'}`}><UserCircle size={24} /> PROFIL</button>
             <div className="pt-10 border-t mt-10"><button onClick={() => signOut(auth)} className="w-full flex items-center gap-4 p-5 text-red-500 font-black hover:bg-red-50 rounded-3xl transition-colors cursor-pointer text-left"><LogOut size={24} /> KELUAR</button></div>
           </div>
         </aside>
@@ -398,7 +450,7 @@ const App = () => {
                   const dStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                   const c = filteredContents.find(item => item.date === dStr);
                   return (
-                    <div key={d} onClick={() => c ? (setEditingId(c.id), setFormContent(c), setShowModal(true)) : openAddModal(dStr)} className={`h-40 md:h-52 border-b border-r border-slate-100 p-4 transition-all group flex flex-col cursor-pointer ${c ? 'bg-indigo-600 text-white shadow-inner' : 'bg-white hover:bg-indigo-50/40'}`}>
+                    <div key={d} onClick={() => c ? (setEditingId(c.id), setFormContent(c), setShowModal(true)) : openAddModal(dStr)} className={`h-40 md:h-52 border-b border-r border-slate-100 p-4 transition-all group flex flex-col cursor-pointer ${c ? getFullBlockStatusClass(c.status) : 'bg-white hover:bg-indigo-50/40'}`}>
                       <div className="flex justify-between items-start mb-2"><span className={`text-base font-black w-10 h-10 flex items-center justify-center rounded-2xl transition-all ${c ? 'bg-white/20' : 'text-slate-400 group-hover:text-indigo-600'}`}>{d}</span>{!c && <Plus size={20} className="opacity-0 group-hover:opacity-100 text-indigo-600 transition-all group-hover:scale-125" strokeWidth={3}/>}</div>
                       {c && <div className="flex-1 flex flex-col justify-between animate-in zoom-in text-left"><h3 className="text-sm font-black line-clamp-3 uppercase tracking-tighter leading-tight">{c.title}</h3><div className="bg-white/20 text-[10px] px-2 py-1 rounded font-black self-start uppercase tracking-widest">{c.type}</div></div>}
                     </div>
@@ -460,6 +512,7 @@ const App = () => {
           {view === 'sourceBank' && (
             <div className="animate-in slide-in-from-bottom-4 duration-500 text-left">
               <h2 className="text-3xl font-black text-slate-900 flex items-center gap-4 mb-10 text-left"><div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><BookOpen size={28} /></div> Source Bank</h2>
+              <button onClick={() => {setEditingSourceId(null); setSourceForm({url:'', notes:'', brand:filterBrand}); setShowSourceModal(true);}} className="mb-6 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase cursor-pointer hover:bg-indigo-700 flex items-center gap-2 transition-all"><Plus size={16}/> Tambah Referensi</button>
               {filteredSources.length === 0 ? (<div className="text-center py-36 bg-white rounded-[3rem] border-4 border-dashed border-slate-100 shadow-inner"><LinkIcon size={72} className="mx-auto text-slate-100 mb-6" /><p className="text-xl text-slate-400 font-black uppercase tracking-widest">Belum ada referensi</p></div>) : (
                 <div className="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm text-left">
                    {filteredSources.map(s => (<div key={s.id} className="p-6 border-b flex justify-between items-center hover:bg-indigo-50/30 transition-all text-left"><div className="flex-1 pr-10 text-left"><a href={s.url} target="_blank" className="text-sm font-black text-indigo-600 truncate block mb-1 hover:underline text-left">{s.url}</a><p className="text-sm text-slate-500 italic text-left">"{s.notes || '-'}"</p></div><div className="flex gap-2"><button onClick={() => {setEditingSourceId(s.id); setSourceForm({...s}); setShowSourceModal(true);}} className="p-2.5 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-xl transition-all cursor-pointer"><Pencil size={18}/></button><button onClick={() => setConfirmModal({ show: true, type: 'source', target: s.id })} className="p-2.5 bg-slate-50 text-slate-400 hover:text-red-500 rounded-xl transition-all cursor-pointer"><Trash2 size={18}/></button></div></div>))}
@@ -481,6 +534,10 @@ const App = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
                 <div className="text-left"><label className="text-xs font-black text-slate-400 mb-4 uppercase block tracking-widest text-left">Tanggal</label><input type="date" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] font-black text-lg outline-none shadow-inner" value={formContent.date} onChange={e => setFormContent({...formContent, date: e.target.value})} /></div>
                 <div className="text-left"><label className="text-xs font-black text-slate-400 mb-4 uppercase block tracking-widest text-left">Pilar</label><select className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] font-black text-lg outline-none appearance-none cursor-pointer" value={formContent.type} onChange={e => setFormContent({...formContent, type: e.target.value})}><option>Edukasi</option><option>Promosi</option><option>Entertainment</option><option>Testimoni</option><option>Behind the Scene</option></select></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                 <Dropdown label="Status" value={formContent.status} onChange={e => setFormContent({...formContent, status: e.target.value})} options={['IDEA', 'READY', 'POSTED']} />
+                 <div><label className="text-xs font-black text-slate-400 mb-4 uppercase block tracking-widest text-left">Visual</label><input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleImageChange} /><button type="button" onClick={triggerFileInput} className="w-full p-6 bg-slate-50 border border-dashed border-slate-300 rounded-[2rem] font-black text-xs hover:bg-slate-100 transition-all uppercase cursor-pointer">Upload Media</button></div>
               </div>
               <button type="submit" className="w-full bg-indigo-600 text-white font-black py-8 rounded-[2.5rem] shadow-2xl uppercase tracking-widest text-xl hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer">Simpan Perubahan</button>
             </form>
@@ -506,7 +563,7 @@ const App = () => {
           <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md p-12 space-y-10 animate-in zoom-in text-center">
             <h2 className="text-3xl font-black text-indigo-900 uppercase tracking-tight">Bisnis Baru</h2>
             <input required autoFocus type="text" placeholder="Masukkan Nama Bisnis" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] outline-none font-black text-xl text-center shadow-inner focus:ring-4 focus:ring-indigo-50 transition-all" value={newBrandName} onChange={e => setNewBrandName(e.target.value)} />
-            <div className="flex gap-4"><button onClick={() => setShowAddBrandModal(false)} className="flex-1 py-5 bg-slate-100 rounded-2xl font-black uppercase text-xs tracking-widest cursor-pointer">Batal</button><button onClick={handleAddBrand} className="flex-1 py-5 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 transition-all uppercase tracking-widest shadow-lg cursor-pointer">Simpan</button></div>
+            <div className="flex gap-4"><button onClick={() => setShowAddBrandModal(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-bold uppercase text-xs tracking-widest cursor-pointer">Batal</button><button onClick={handleAddBrand} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 transition-all uppercase tracking-widest shadow-lg cursor-pointer">Simpan</button></div>
           </div>
         </div>
       )}
