@@ -108,7 +108,7 @@ const App = () => {
   const [formContent, setFormContent] = useState({ title: '', brand: '', type: 'Edukasi', date: '', status: 'IDEA', caption: '', images: [] });
   const [sourceForm, setSourceForm] = useState({ url: '', notes: '', brand: '' });
 
-  // Filter Data menggunakan useMemo (Diletakkan SEBELUM return kondisional)
+  // Filter Data menggunakan useMemo
   const filteredContents = useMemo(() => {
     return contents.filter(c => 
       c.brand === filterBrand && 
@@ -156,6 +156,15 @@ const App = () => {
 
     return () => { unsubBrands(); unsubContents(); unsubSources(); unsubProfiles(); };
   }, [user, filterBrand]);
+
+  // Sync Profile Form saat brand berubah
+  useEffect(() => {
+    if (brandProfiles[filterBrand]) {
+      setProfileForm(brandProfiles[filterBrand]);
+    } else {
+      setProfileForm({ description: '', platforms: '', link: '' });
+    }
+  }, [filterBrand, brandProfiles]);
 
   // --- HANDLERS ---
   const handleAuth = async (e) => {
@@ -232,6 +241,14 @@ const App = () => {
     } catch (err) { console.error(err); }
   };
 
+  const handleSaveProfile = async () => {
+    if (!user || !filterBrand) return;
+    try {
+      await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profiles', filterBrand), profileForm);
+      setIsEditingProfile(false);
+    } catch (err) { console.error(err); }
+  };
+
   // --- RENDERING LOGIC ---
 
   if (firebaseConfig.apiKey === "MASUKKAN_API_KEY_ANDA") {
@@ -261,8 +278,8 @@ const App = () => {
             {authError && <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-bold border border-red-100">{authError}</div>}
             <input type="email" placeholder="Email" className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:ring-4 focus:ring-indigo-50" value={email} onChange={e => setEmail(e.target.value)} />
             <input type="password" placeholder="Password" className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:ring-4 focus:ring-indigo-50" value={password} onChange={e => setPassword(e.target.value)} />
-            <button onClick={handleAuth} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100">Masuk / Daftar</button>
-            <button onClick={loginAnonymously} className="w-full bg-white border-2 border-slate-100 text-slate-500 py-4 rounded-2xl font-black uppercase text-xs hover:bg-slate-50 transition-all">Masuk sebagai Tamu</button>
+            <button onClick={handleAuth} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100 cursor-pointer">Masuk / Daftar</button>
+            <button onClick={loginAnonymously} className="w-full bg-white border-2 border-slate-100 text-slate-500 py-4 rounded-2xl font-black uppercase text-xs hover:bg-slate-50 transition-all cursor-pointer">Masuk sebagai Tamu</button>
           </div>
         </div>
       </div>
@@ -279,7 +296,7 @@ const App = () => {
           </div>
           
           <div className="relative">
-            <button onClick={() => setShowBrandDropdown(!showBrandDropdown)} className="flex items-center gap-4 px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-indigo-50 hover:border-indigo-200 transition-all min-w-[200px] group">
+            <button onClick={() => setShowBrandDropdown(!showBrandDropdown)} className="flex items-center gap-4 px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-indigo-50 hover:border-indigo-200 transition-all min-w-[200px] group cursor-pointer">
               <Building2 size={24} className="text-indigo-600 group-hover:scale-110 transition-transform" />
               <div className="text-left"><p className="text-[10px] font-black text-slate-400 uppercase leading-none mb-1">Pilih Bisnis</p><p className="text-base font-bold text-slate-800 flex items-center gap-2 leading-none">{filterBrand || 'Belum Ada'} <ChevronDown size={18} className={`transition-transform ${showBrandDropdown ? 'rotate-180' : ''}`} /></p></div>
             </button>
@@ -291,11 +308,11 @@ const App = () => {
                   {brands.map((brand) => (
                     <div key={brand} onClick={() => { setFilterBrand(brand); setShowBrandDropdown(false); }} className={`p-4 cursor-pointer transition-all border-b border-slate-50 flex justify-between items-center hover:bg-indigo-50 ${filterBrand === brand ? 'bg-indigo-50 text-indigo-700 font-black' : 'text-slate-700'}`}>
                       <span className="truncate flex-1">{brand}</span>
-                      <button onClick={(e) => handleDeleteBrand(e, brand)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-white rounded-lg transition-all"><Trash2 size={16}/></button>
+                      <button onClick={(e) => handleDeleteBrand(e, brand)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-white rounded-lg transition-all cursor-pointer"><Trash2 size={16}/></button>
                     </div>
                   ))}
                 </div>
-                <button onClick={() => { setShowAddBrandModal(true); setShowBrandDropdown(false); }} className="w-full text-left p-5 text-sm font-black text-indigo-600 bg-indigo-50/50 flex items-center gap-3 hover:bg-indigo-100 transition-colors"><PlusCircle size={20} /> Tambah Bisnis Baru</button>
+                <button onClick={() => { setShowAddBrandModal(true); setShowBrandDropdown(false); }} className="w-full text-left p-5 text-sm font-black text-indigo-600 bg-indigo-50/50 flex items-center gap-3 hover:bg-indigo-100 transition-colors cursor-pointer"><PlusCircle size={20} /> Tambah Bisnis Baru</button>
               </div>
             )}
           </div>
@@ -303,20 +320,20 @@ const App = () => {
 
         <div className="flex items-center gap-5">
           <div className="flex items-center bg-slate-100 p-1.5 rounded-2xl">
-            <button onClick={() => setView('calendar')} className={`px-6 py-2.5 rounded-xl transition-all font-black text-sm ${view === 'calendar' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Kalender</button>
-            <button onClick={() => setView('list')} className={`px-6 py-2.5 rounded-xl transition-all font-black text-sm ${view === 'list' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Daftar</button>
+            <button onClick={() => setView('calendar')} className={`px-6 py-2.5 rounded-xl transition-all font-black text-sm cursor-pointer ${view === 'calendar' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Kalender</button>
+            <button onClick={() => setView('list')} className={`px-6 py-2.5 rounded-xl transition-all font-black text-sm cursor-pointer ${view === 'list' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Daftar</button>
           </div>
-          <button onClick={() => openAddModal()} className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl flex items-center gap-3 shadow-xl hover:bg-indigo-700 hover:-translate-y-0.5 active:scale-95 transition-all font-black text-sm uppercase tracking-widest"><Plus size={22} strokeWidth={3} /> Buat Ide</button>
+          <button onClick={() => openAddModal()} className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl flex items-center gap-3 shadow-xl hover:bg-indigo-700 hover:-translate-y-0.5 active:scale-95 transition-all font-black text-sm uppercase tracking-widest cursor-pointer"><Plus size={22} strokeWidth={3} /> Buat Ide</button>
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-80 bg-white border-r border-slate-200 hidden lg:block p-8 overflow-y-auto">
           <div className="space-y-3">
-            <button onClick={() => setView('calendar')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all ${view === 'calendar' || view === 'list' ? 'bg-slate-50 text-indigo-700 shadow-sm border border-slate-100 font-black' : 'text-slate-500 hover:bg-slate-50 font-bold'}`}><LayoutDashboard size={24} /> SCHEDULE</button>
-            <button onClick={() => setView('sourceBank')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all ${view === 'sourceBank' ? 'bg-indigo-600 text-white shadow-lg font-black' : 'text-slate-500 hover:bg-slate-50 font-bold'}`}><BookOpen size={24} /> SOURCE BANK</button>
-            <button onClick={() => setView('profile')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all ${view === 'profile' ? 'bg-emerald-600 text-white shadow-lg font-black' : 'text-slate-500 hover:bg-slate-50 font-bold'}`}><UserCircle size={24} /> PROFIL</button>
-            <div className="pt-10 border-t mt-10"><button onClick={() => signOut(auth)} className="w-full flex items-center gap-4 p-5 text-red-500 font-black hover:bg-red-50 rounded-3xl transition-colors"><LogOut size={24} /> KELUAR</button></div>
+            <button onClick={() => setView('calendar')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'calendar' || view === 'list' ? 'bg-slate-50 text-indigo-700 shadow-sm border border-slate-100 font-black' : 'text-slate-500 hover:bg-slate-50 font-bold'}`}><LayoutDashboard size={24} /> SCHEDULE</button>
+            <button onClick={() => setView('sourceBank')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'sourceBank' ? 'bg-indigo-600 text-white shadow-lg font-black' : 'text-slate-500 hover:bg-slate-50 font-bold'}`}><BookOpen size={24} /> SOURCE BANK</button>
+            <button onClick={() => setView('profile')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'profile' ? 'bg-emerald-600 text-white shadow-lg font-black' : 'text-slate-500 hover:bg-slate-50 font-bold'}`}><UserCircle size={24} /> PROFIL</button>
+            <div className="pt-10 border-t mt-10"><button onClick={() => signOut(auth)} className="w-full flex items-center gap-4 p-5 text-red-500 font-black hover:bg-red-50 rounded-3xl transition-colors cursor-pointer"><LogOut size={24} /> KELUAR</button></div>
           </div>
         </aside>
 
@@ -326,8 +343,8 @@ const App = () => {
               <div className="p-10 flex items-center justify-between border-b bg-slate-50/20">
                 <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">{selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
                 <div className="flex gap-3 bg-slate-100 p-2 rounded-2xl">
-                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1))} className="p-3 bg-white hover:text-indigo-600 shadow-sm rounded-xl transition-all"><ChevronLeft size={28}/></button>
-                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1))} className="p-3 bg-white hover:text-indigo-600 shadow-sm rounded-xl transition-all"><ChevronRight size={28}/></button>
+                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1))} className="p-3 bg-white hover:text-indigo-600 shadow-sm rounded-xl transition-all cursor-pointer"><ChevronLeft size={28}/></button>
+                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1))} className="p-3 bg-white hover:text-indigo-600 shadow-sm rounded-xl transition-all cursor-pointer"><ChevronRight size={28}/></button>
                 </div>
               </div>
               <div className="grid grid-cols-7 border-b bg-slate-50/50">{['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(day => (<div key={day} className="py-6 text-center text-sm font-black text-slate-400 uppercase tracking-widest">{day}</div>))}</div>
@@ -360,13 +377,52 @@ const App = () => {
                         <option value="READY">READY</option>
                         <option value="POSTED">POSTED</option>
                       </select>
-                      <button onClick={() => {setEditingId(c.id); setFormContent(c); setShowModal(true);}} className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:text-indigo-600 hover:bg-white border border-transparent hover:border-indigo-100 transition-all"><Pencil size={24}/></button>
-                      <button onClick={() => setConfirmModal({ show: true, type: 'content', target: c.id })} className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:text-red-500 hover:bg-white border border-transparent hover:border-red-100 transition-all"><Trash2 size={24}/></button>
+                      <button onClick={() => {setEditingId(c.id); setFormContent(c); setShowModal(true);}} className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:text-indigo-600 hover:bg-white border border-transparent hover:border-indigo-100 transition-all cursor-pointer"><Pencil size={24}/></button>
+                      <button onClick={() => setConfirmModal({ show: true, type: 'content', target: c.id })} className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:text-red-500 hover:bg-white border border-transparent hover:border-red-100 transition-all cursor-pointer"><Trash2 size={24}/></button>
                     </div>
                   </div>
                 ))
               }
             </div>
+          )}
+
+          {view === 'profile' && (
+            <div className="animate-in slide-in-from-right-4 max-w-4xl mx-auto">
+               <div className="flex justify-between items-center mb-10">
+                <div><h2 className="text-4xl font-black text-slate-900 flex items-center gap-4"><div className="bg-emerald-600 p-3 rounded-2xl text-white shadow-lg"><UserCircle size={32} /></div> Profil {filterBrand}</h2><p className="text-slate-500 font-bold uppercase text-sm tracking-widest mt-4 opacity-60">Identity & Links</p></div>
+                <button onClick={() => setIsEditingProfile(!isEditingProfile)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm uppercase transition-all cursor-pointer ${isEditingProfile ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 text-white shadow-xl hover:bg-emerald-700'}`}>{isEditingProfile ? 'Batal' : 'Edit Profil'}</button>
+              </div>
+              {isEditingProfile ? (
+                <div className="bg-white rounded-[3rem] p-10 shadow-xl space-y-8 animate-in zoom-in duration-300">
+                  <div className="space-y-2"><label className="text-xs font-black text-slate-400 uppercase block mb-2">Deskripsi Brand</label><textarea rows="4" className="w-full p-6 bg-slate-50 border rounded-[2rem] outline-none font-medium text-lg resize-none shadow-inner" value={profileForm.description} onChange={e => setProfileForm({...profileForm, description: e.target.value})} /></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div><label className="text-xs font-black text-slate-400 uppercase block mb-2">Platform Utama</label><input type="text" className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold text-lg shadow-inner" value={profileForm.platforms} onChange={e => setProfileForm({...profileForm, platforms: e.target.value})} /></div>
+                    <div><label className="text-xs font-black text-slate-400 uppercase block mb-2">Link Brand</label><input type="url" className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold text-lg text-indigo-600 shadow-inner" value={profileForm.link} onChange={e => setProfileForm({...profileForm, link: e.target.value})} /></div>
+                  </div>
+                  <button onClick={handleSaveProfile} className="w-full bg-emerald-600 text-white font-black py-6 rounded-[2.5rem] shadow-2xl flex items-center justify-center gap-3 text-lg cursor-pointer hover:bg-emerald-700 transition-all uppercase tracking-widest">Simpan Profil</button>
+                </div>
+              ) : (
+                <div className="space-y-8 animate-in zoom-in duration-300">
+                  <div className="bg-white rounded-[3rem] p-10 shadow-sm border relative overflow-hidden group"><div className="absolute right-0 top-0 p-8 text-slate-100 group-hover:text-emerald-50 transition-colors"><Building2 size={120}/></div><div className="relative z-10"><h3 className="text-xs font-black text-slate-400 uppercase mb-4 tracking-widest">Nama Brand</h3><p className="text-4xl font-black text-slate-900 leading-tight">{filterBrand}</p></div></div>
+                  <div className="bg-white rounded-[3rem] p-10 shadow-sm border"><h3 className="text-xs font-black text-slate-400 uppercase mb-6 tracking-widest">Deskripsi Brand</h3><p className="text-xl font-medium text-slate-700 italic italic">"{brandProfiles[filterBrand]?.description || 'Belum ada deskripsi...'}"</p></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="bg-indigo-600 rounded-[3rem] p-10 text-white relative shadow-xl overflow-hidden group"><Smartphone className="absolute -right-6 -bottom-6 opacity-10 w-32 h-32" /><h3 className="text-xs font-black text-indigo-200 uppercase mb-6 tracking-widest">Platform</h3><p className="text-2xl font-black">{brandProfiles[filterBrand]?.platforms || '-'}</p></div>
+                    <div className="bg-white rounded-[3rem] p-10 shadow-sm border group"><h3 className="text-xs font-black text-slate-400 uppercase mb-6 tracking-widest flex items-center gap-2"><LinkIcon size={16}/> Link Utama</h3>{brandProfiles[filterBrand]?.link ? <a href={brandProfiles[filterBrand].link} target="_blank" rel="noopener noreferrer" className="text-xl font-black text-indigo-600 hover:underline break-all">Tautan Brand <ExternalLink className="inline ml-2" size={20} /></a> : <p className="text-xl font-black text-slate-300">-</p>}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {view === 'sourceBank' && (
+            <div className="animate-in slide-in-from-bottom-4 duration-500">
+              <h2 className="text-3xl font-black text-slate-900 flex items-center gap-4 mb-10"><div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><BookOpen size={28} /></div> Source Bank</h2>
+              {filteredSources.length === 0 ? (<div className="text-center py-36 bg-white rounded-[3rem] border-4 border-dashed border-slate-100 shadow-inner"><LinkIcon size={72} className="mx-auto text-slate-100 mb-6" /><p className="text-xl text-slate-400 font-black uppercase tracking-widest">Belum ada referensi</p></div>) : (
+                <div className="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm">
+                   {filteredSources.map(s => (<div key={s.id} className="p-6 border-b flex justify-between items-center hover:bg-indigo-50/30 transition-all"><div className="flex-1 pr-10 text-left"><a href={s.url} target="_blank" className="text-sm font-black text-indigo-600 truncate block mb-1 hover:underline">{s.url}</a><p className="text-sm text-slate-500 italic italic">"{s.notes || '-'}"</p></div><div className="flex gap-2"><button onClick={() => {setEditingSourceId(s.id); setSourceForm({...s}); setShowSourceModal(true);}} className="p-2.5 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-xl transition-all cursor-pointer"><Pencil size={18}/></button><button onClick={() => setConfirmModal({ show: true, type: 'source', target: s.id })} className="p-2.5 bg-slate-50 text-slate-400 hover:text-red-500 rounded-xl transition-all cursor-pointer"><Trash2 size={18}/></button></div></div>))}
+                </div>
+              )}
+           </div>
           )}
         </main>
       </div>
@@ -375,7 +431,7 @@ const App = () => {
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-[3.5rem] shadow-2xl w-full max-w-2xl overflow-hidden p-12 text-left animate-in zoom-in duration-300">
-            <div className="flex justify-between items-center mb-10"><h2 className="text-4xl font-black text-indigo-900 uppercase tracking-tight">{editingId ? 'Edit Ide' : 'Ide Baru'}</h2><button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-4 transition-colors"><X size={32} /></button></div>
+            <div className="flex justify-between items-center mb-10"><h2 className="text-4xl font-black text-indigo-900 uppercase tracking-tight">{editingId ? 'Edit Ide' : 'Ide Baru'}</h2><button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-4 transition-colors cursor-pointer"><X size={32} /></button></div>
             <form onSubmit={handleFormSubmit} className="space-y-8">
               <div className="bg-indigo-50 p-4 rounded-2xl flex items-center gap-3"><Building2 size={16} className="text-indigo-600"/><p className="text-xs font-black text-indigo-900 uppercase tracking-widest">{filterBrand}</p></div>
               <div><label className="block text-xs font-black text-slate-400 mb-4 uppercase tracking-widest">Judul Konten</label><input required type="text" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] outline-none font-black text-xl shadow-inner focus:ring-4 focus:ring-indigo-50 transition-all" value={formContent.title} onChange={e => setFormContent({...formContent, title: e.target.value})} /></div>
@@ -383,7 +439,7 @@ const App = () => {
                 <div><label className="text-xs font-black text-slate-400 mb-4 uppercase block tracking-widest">Tanggal</label><input type="date" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] font-black text-lg outline-none shadow-inner" value={formContent.date} onChange={e => setFormContent({...formContent, date: e.target.value})} /></div>
                 <div><label className="text-xs font-black text-slate-400 mb-4 uppercase block tracking-widest">Pilar</label><select className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] font-black text-lg outline-none appearance-none cursor-pointer" value={formContent.type} onChange={e => setFormContent({...formContent, type: e.target.value})}><option>Edukasi</option><option>Promosi</option><option>Entertainment</option><option>Testimoni</option><option>Behind the Scene</option></select></div>
               </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white font-black py-8 rounded-[2.5rem] shadow-2xl uppercase tracking-widest text-xl hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all">Simpan Perubahan</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-black py-8 rounded-[2.5rem] shadow-2xl uppercase tracking-widest text-xl hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer">Simpan Perubahan</button>
             </form>
           </div>
         </div>
@@ -396,7 +452,7 @@ const App = () => {
             <div className="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-bounce"><Trash2 size={40} /></div>
             <h3 className="text-2xl font-black uppercase tracking-tight mb-3">Hapus Data?</h3>
             <p className="text-slate-500 font-medium text-sm mb-10 leading-relaxed">Tindakan ini tidak bisa dibatalkan. Apakah Anda yakin ingin melanjutkan?</p>
-            <div className="flex gap-4"><button onClick={() => setConfirmModal({ show: false, type: '', target: null })} className="flex-1 py-5 bg-slate-100 rounded-2xl font-black uppercase text-xs tracking-widest transition-colors hover:bg-slate-200">Batal</button><button onClick={executeDelete} className="flex-1 py-5 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-red-100 hover:bg-red-700 transition-all">Hapus Permanen</button></div>
+            <div className="flex gap-4"><button onClick={() => setConfirmModal({ show: false, type: '', target: null })} className="flex-1 py-5 bg-slate-100 rounded-2xl font-black uppercase text-xs tracking-widest transition-colors hover:bg-slate-200 cursor-pointer">Batal</button><button onClick={executeDelete} className="flex-1 py-5 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-red-100 hover:bg-red-700 transition-all cursor-pointer">Hapus Permanen</button></div>
           </div>
         </div>
       )}
@@ -407,7 +463,20 @@ const App = () => {
           <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md p-12 space-y-10 animate-in zoom-in text-center">
             <h2 className="text-3xl font-black text-indigo-900 uppercase tracking-tight">Bisnis Baru</h2>
             <input required autoFocus type="text" placeholder="Masukkan Nama Bisnis" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] outline-none font-black text-xl text-center shadow-inner focus:ring-4 focus:ring-indigo-50 transition-all" value={newBrandName} onChange={e => setNewBrandName(e.target.value)} />
-            <div className="flex gap-4"><button onClick={() => setShowAddBrandModal(false)} className="flex-1 py-5 bg-slate-100 rounded-2xl font-black uppercase text-xs tracking-widest">Batal</button><button onClick={handleAddBrand} className="flex-1 py-5 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 transition-all uppercase tracking-widest shadow-lg">Simpan</button></div>
+            <div className="flex gap-4"><button onClick={() => setShowAddBrandModal(false)} className="flex-1 py-5 bg-slate-100 rounded-2xl font-black uppercase text-xs tracking-widest cursor-pointer">Batal</button><button onClick={handleAddBrand} className="flex-1 py-5 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 transition-all uppercase tracking-widest shadow-lg cursor-pointer">Simpan</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL SOURCE BARU */}
+      {showSourceModal && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-lg z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-xl p-10 space-y-8 animate-in zoom-in duration-300">
+            <h2 className="text-2xl font-black text-indigo-900 uppercase tracking-tight">{editingSourceId ? 'Edit' : 'Tambah'} Source</h2>
+            <div><label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Tautan URL</label><input required autoFocus type="url" placeholder="https://..." className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold shadow-inner" value={sourceForm.url} onChange={e => setSourceForm({ ...sourceForm, url: e.target.value })} /></div>
+            <div><label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Catatan Singkat</label><textarea rows="4" className="w-full p-6 bg-slate-50 border rounded-[2rem] outline-none font-medium resize-none shadow-inner" value={sourceForm.notes} onChange={e => setSourceForm({ ...sourceForm, notes: e.target.value })}></textarea></div>
+            <button onClick={handleSourceSubmit} className="w-full bg-indigo-600 text-white font-black py-6 rounded-[2rem] uppercase tracking-widest transition-all hover:bg-indigo-700 cursor-pointer shadow-lg">Simpan ke Bank Ide</button>
+            <button onClick={() => setShowSourceModal(false)} className="w-full py-4 text-slate-400 font-bold uppercase text-xs cursor-pointer">Batal</button>
           </div>
         </div>
       )}
