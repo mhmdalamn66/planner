@@ -265,7 +265,7 @@ const App = () => {
       } else {
         await addDoc(col, formContent);
       }
-      // PENTING: Tutup modal dan reset form
+      // PENTING: Tutup modal dan reset form secara sinkron
       setShowModal(false);
       setEditingId(null);
       setFormContent(initialFormContent);
@@ -308,7 +308,7 @@ const App = () => {
       reader.onloadend = () => {
         setFormContent(prev => ({ 
           ...prev, 
-          images: [...(prev.images || []), reader.result] 
+          images: [reader.result] // Mengambil satu gambar terbaru untuk pratinjau utama
         }));
       };
       reader.readAsDataURL(file);
@@ -316,75 +316,58 @@ const App = () => {
   };
 
   const triggerFileInput = () => fileInputRef.current?.click();
-  const removeImage = (idx) => setFormContent(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }));
 
   // --- RENDER LOGIC ---
   if (firebaseConfig.apiKey === "MASUKKAN_API_KEY_ANDA") {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-10 text-center text-left">
-        <div className="bg-white p-10 rounded-[3rem] shadow-xl max-w-md border-4 border-red-100">
-          <AlertCircle size={64} className="text-red-500 mx-auto mb-6" />
-          <h1 className="text-2xl font-black mb-4 uppercase">API Key Belum Diisi</h1>
-          <p className="text-slate-500 font-medium">Silakan masukkan <code className="bg-slate-100 p-1 rounded">firebaseConfig</code> asli Anda di file App.jsx.</p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-center">
+        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm border border-red-100">
+          <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
+          <h1 className="text-xl font-bold mb-2 uppercase">API Key Kosong</h1>
+          <p className="text-slate-500 text-sm">Harap masukkan <code className="bg-slate-50 p-1">firebaseConfig</code> Anda di App.jsx.</p>
         </div>
       </div>
     );
   }
 
-  if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div></div>;
+  if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent"></div></div>;
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6 text-left">
-        <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in text-left">
-          <div className="p-10 text-center bg-indigo-600 text-white text-left">
-            <CalendarIcon size={48} className="mx-auto mb-4" />
-            <h1 className="text-3xl font-black uppercase tracking-tight">Planner Pro</h1>
-            <p className="text-indigo-100 mt-2 text-sm font-bold uppercase tracking-widest text-left">
-              {authMode === 'login' ? 'Selamat Datang Kembali' : 'Buat Akun Baru'}
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
+        <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in">
+          <div className="p-8 text-center bg-indigo-600 text-white">
+            <CalendarIcon size={40} className="mx-auto mb-4" />
+            <h1 className="text-2xl font-bold uppercase tracking-tight">Planner Pro</h1>
+            <p className="text-indigo-100 mt-1 text-xs font-medium uppercase tracking-widest">
+              {authMode === 'login' ? 'Login' : 'Daftar'}
             </p>
           </div>
-          <div className="p-10 space-y-6 text-left">
-            {authError && <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-bold border border-red-100">{authError}</div>}
+          <div className="p-8 space-y-4">
+            {authError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-[11px] font-bold border border-red-100">{authError}</div>}
             
-            <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-2 text-left">
-              <button 
-                onClick={() => {setAuthMode('login'); setAuthError('');}} 
-                className={`flex-1 py-3 rounded-xl font-black text-sm transition-all cursor-pointer ${authMode === 'login' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                MASUK
-              </button>
-              <button 
-                onClick={() => {setAuthMode('register'); setAuthError('');}} 
-                className={`flex-1 py-3 rounded-xl font-black text-sm transition-all cursor-pointer ${authMode === 'register' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                DAFTAR
-              </button>
+            <div className="flex bg-slate-100 p-1 rounded-xl">
+              <button onClick={() => {setAuthMode('login'); setAuthError('');}} className={`flex-1 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${authMode === 'login' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>MASUK</button>
+              <button onClick={() => {setAuthMode('register'); setAuthError('');}} className={`flex-1 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${authMode === 'register' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>DAFTAR</button>
             </div>
 
-            <div className="space-y-4 text-left">
-              <div className="relative text-left">
-                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                <input type="email" placeholder="Email" className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold pl-14 focus:ring-4 focus:ring-indigo-50" value={email} onChange={e => setEmail(e.target.value)} />
+            <div className="space-y-3">
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
+                <input type="email" placeholder="Email" className="w-full p-3.5 pl-11 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm focus:ring-2 focus:ring-indigo-100" value={email} onChange={e => setEmail(e.target.value)} />
               </div>
-              <div className="relative text-left">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                <input type="password" placeholder="Password" className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold pl-14 focus:ring-4 focus:ring-indigo-50" value={password} onChange={e => setPassword(e.target.value)} />
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
+                <input type="password" placeholder="Password" className="w-full p-3.5 pl-11 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm focus:ring-2 focus:ring-indigo-100" value={password} onChange={e => setPassword(e.target.value)} />
               </div>
             </div>
 
-            <button onClick={handleAuth} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100 cursor-pointer tracking-widest text-left">
-              {authMode === 'login' ? 'MASUK SEKARANG' : 'DAFTAR SEKARANG'}
+            <button onClick={handleAuth} className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold uppercase text-xs hover:bg-indigo-700 transition-all active:scale-95 shadow-lg shadow-indigo-100 cursor-pointer tracking-widest">
+              {authMode === 'login' ? 'MASUK' : 'DAFTAR'}
             </button>
 
-            <div className="relative flex items-center py-2 text-left">
-              <div className="flex-grow border-t border-slate-100"></div>
-              <span className="flex-shrink mx-4 text-slate-300 text-[10px] font-black uppercase tracking-widest">Atau</span>
-              <div className="flex-grow border-t border-slate-100"></div>
-            </div>
-
-            <button onClick={loginAnonymously} className="w-full bg-white border-2 border-slate-100 text-slate-500 py-4 rounded-2xl font-black uppercase text-xs hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-center gap-3">
-              <UserCheck size={18} /> MASUK SEBAGAI TAMU
+            <button onClick={loginAnonymously} className="w-full bg-white border border-slate-200 text-slate-500 py-3 rounded-xl font-bold uppercase text-[10px] hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-center gap-2">
+              <UserCheck size={14} /> LOGIN TAMU
             </button>
           </div>
         </div>
@@ -392,88 +375,88 @@ const App = () => {
     );
   }
 
-  const Dropdown = ({ label, value, onChange, options, small = false }) => (
+  const Dropdown = ({ label, value, onChange, options }) => (
     <div className="relative w-full text-left">
-      {label && <label className="block text-sm font-black text-slate-400 mb-2 uppercase tracking-widest">{label}</label>}
-      <select className={`w-full ${small ? 'p-3 text-sm' : 'p-4 text-base'} bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold appearance-none cursor-pointer focus:ring-4 focus:ring-indigo-100 transition-all shadow-sm text-left`} value={value} onChange={onChange}>
+      {label && <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest">{label}</label>}
+      <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-50 transition-all" value={value} onChange={onChange}>
         {options.map((opt, idx) => (<option key={idx} value={typeof opt === 'object' ? opt.value : opt}>{typeof opt === 'object' ? opt.label : opt}</option>))}
       </select>
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 mt-3"><ChevronDown size={18} /></div>
+      <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400"><ChevronDown size={14} /></div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800 text-left">
-      <header className="bg-white border-b border-slate-200 px-6 py-5 flex flex-col lg:flex-row justify-between items-center gap-4 sticky top-0 z-40 shadow-sm text-left">
-        <div className="flex items-center gap-6 text-left">
-          <div className="flex items-center gap-4 text-left">
-            <div className="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg cursor-default"><CalendarIcon size={32} /></div>
-            <div className="hidden sm:block text-left"><h1 className="text-2xl font-black text-slate-900 leading-none uppercase tracking-tighter text-left">Planner Pro</h1><p className="text-xs text-slate-400 font-bold mt-1.5 truncate max-w-[150px] text-left">{user.email || 'Guest Account'}</p></div>
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col lg:flex-row justify-between items-center gap-4 sticky top-0 z-40 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="bg-indigo-600 p-2 rounded-lg text-white"><CalendarIcon size={24} /></div>
+          <div className="text-left">
+            <h1 className="text-lg font-bold tracking-tight uppercase leading-none">Planner Pro</h1>
+            <p className="text-[10px] text-slate-400 font-bold mt-1 truncate max-w-[120px]">{user.email || 'Guest'}</p>
           </div>
           
-          <div className="relative text-left">
-            <button onClick={() => setShowBrandDropdown(!showBrandDropdown)} className="flex items-center gap-4 px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-indigo-50 hover:border-indigo-200 transition-all min-w-[200px] group cursor-pointer text-left">
-              <Building2 size={24} className="text-indigo-600 group-hover:scale-110 transition-transform" />
-              <div className="text-left"><p className="text-[10px] font-black text-slate-400 uppercase leading-none mb-1 text-left">Pilih Bisnis</p><p className="text-base font-bold text-slate-800 flex items-center gap-2 leading-none text-left">{filterBrand || 'Belum Ada'} <ChevronDown size={18} className={`transition-transform ${showBrandDropdown ? 'rotate-180' : ''}`} /></p></div>
+          <div className="relative ml-4">
+            <button onClick={() => setShowBrandDropdown(!showBrandDropdown)} className="flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl hover:bg-indigo-50 transition-all cursor-pointer">
+              <Building2 size={18} className="text-indigo-600" />
+              <p className="text-sm font-bold">{filterBrand || 'Pilih Bisnis'}</p>
+              <ChevronDown size={14} />
             </button>
-            
             {showBrandDropdown && (
-              <div className="absolute top-full left-0 mt-3 w-full min-w-[280px] bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden z-50 animate-in slide-in-from-top-2 text-left">
-                <div className="max-h-72 overflow-y-auto text-left">
-                  <div className="p-3 bg-slate-50 text-[10px] font-black text-slate-400 uppercase border-b text-left">Daftar Bisnis</div>
+              <div className="absolute top-full left-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden animate-in slide-in-from-top-1">
+                <div className="max-h-60 overflow-y-auto">
                   {brands.map((brand) => (
-                    <div key={brand} onClick={() => { setFilterBrand(brand); setShowBrandDropdown(false); }} className={`p-4 cursor-pointer transition-all border-b border-slate-50 flex justify-between items-center hover:bg-indigo-50 ${filterBrand === brand ? 'bg-indigo-50 text-indigo-700 font-black' : 'text-slate-700'} text-left`}>
-                      <span className="truncate flex-1 text-left">{brand}</span>
-                      <button onClick={(e) => handleDeleteBrand(e, brand)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-white rounded-lg transition-all cursor-pointer"><Trash2 size={16}/></button>
+                    <div key={brand} onClick={() => { setFilterBrand(brand); setShowBrandDropdown(false); }} className={`p-3 cursor-pointer transition-all border-b border-slate-50 flex justify-between items-center hover:bg-indigo-50 ${filterBrand === brand ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700'} text-xs`}>
+                      <span className="truncate flex-1">{brand}</span>
+                      <button onClick={(e) => handleDeleteBrand(e, brand)} className="p-1.5 text-slate-300 hover:text-red-500 cursor-pointer"><Trash2 size={14}/></button>
                     </div>
                   ))}
                 </div>
-                <button onClick={() => { setShowAddBrandModal(true); setShowBrandDropdown(false); }} className="w-full text-left p-5 text-sm font-black text-indigo-600 bg-indigo-50/30 flex items-center gap-3 hover:bg-indigo-100 transition-colors cursor-pointer text-left"><PlusCircle size={20} /> Tambah Bisnis Baru</button>
+                <button onClick={() => { setShowAddBrandModal(true); setShowBrandDropdown(false); }} className="w-full text-left p-3 text-xs font-bold text-indigo-600 bg-indigo-50/30 hover:bg-indigo-100 flex items-center gap-2 cursor-pointer border-t"><PlusCircle size={16} /> Tambah Baru</button>
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-5 text-left">
-          <div className="flex items-center bg-slate-100 p-1.5 rounded-2xl text-left">
-            <button onClick={() => setView('calendar')} className={`px-6 py-2.5 rounded-xl transition-all font-black text-sm cursor-pointer ${view === 'calendar' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-500 hover:text-slate-800'} text-left`}>Kalender</button>
-            <button onClick={() => setView('list')} className={`px-6 py-2.5 rounded-xl transition-all font-black text-sm cursor-pointer ${view === 'list' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-500 hover:text-slate-800'} text-left`}>Daftar</button>
+        <div className="flex items-center gap-4">
+          <div className="flex bg-slate-100 p-1 rounded-xl">
+            <button onClick={() => setView('calendar')} className={`px-4 py-1.5 rounded-lg transition-all font-bold text-[11px] cursor-pointer ${view === 'calendar' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>Kalender</button>
+            <button onClick={() => setView('list')} className={`px-4 py-1.5 rounded-lg transition-all font-bold text-[11px] cursor-pointer ${view === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>Daftar</button>
           </div>
-          <button onClick={() => openAddModal()} className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl flex items-center gap-3 shadow-xl hover:bg-indigo-700 hover:-translate-y-0.5 active:scale-95 transition-all font-black text-sm uppercase tracking-widest cursor-pointer text-left"><Plus size={22} strokeWidth={3} /> Buat Ide</button>
+          <button onClick={() => openAddModal()} className="bg-indigo-600 text-white px-5 py-2 rounded-xl flex items-center gap-2 shadow-md hover:bg-indigo-700 active:scale-95 transition-all font-bold text-xs uppercase cursor-pointer"><Plus size={16} /> Buat Ide</button>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden text-left">
-        <aside className="w-80 bg-white border-r border-slate-200 hidden lg:block p-8 overflow-y-auto text-left">
-          <div className="space-y-3 text-left">
-            <button onClick={() => setView('calendar')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'calendar' || view === 'list' ? 'bg-slate-50 text-indigo-700 font-black text-left' : 'text-slate-500 hover:bg-slate-50 font-bold text-left'}`}><LayoutDashboard size={24} /> SCHEDULE</button>
-            <button onClick={() => setView('sourceBank')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'sourceBank' ? 'bg-indigo-600 text-white font-black text-left' : 'text-slate-500 hover:bg-slate-50 font-bold text-left'}`}><BookOpen size={24} /> SOURCE BANK</button>
-            <button onClick={() => setView('profile')} className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all cursor-pointer ${view === 'profile' ? 'bg-emerald-600 text-white font-black text-left' : 'text-slate-500 hover:bg-slate-50 font-bold text-left'}`}><UserCircle size={24} /> PROFIL</button>
-            <div className="pt-10 border-t mt-10 text-left"><button onClick={() => signOut(auth)} className="w-full flex items-center gap-4 p-5 text-red-500 font-black hover:bg-red-50 rounded-3xl transition-colors cursor-pointer text-left"><LogOut size={24} /> KELUAR</button></div>
+      <div className="flex flex-1 overflow-hidden">
+        <aside className="w-64 bg-white border-r border-slate-200 hidden lg:block p-6">
+          <div className="space-y-2">
+            <button onClick={() => setView('calendar')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer text-xs font-bold text-left ${view === 'calendar' || view === 'list' ? 'bg-slate-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}><LayoutDashboard size={18} /> SCHEDULE</button>
+            <button onClick={() => setView('sourceBank')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer text-xs font-bold text-left ${view === 'sourceBank' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><BookOpen size={18} /> SOURCE BANK</button>
+            <button onClick={() => setView('profile')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer text-xs font-bold text-left ${view === 'profile' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><UserCircle size={18} /> PROFIL</button>
           </div>
+          <div className="mt-10 pt-6 border-t"><button onClick={() => signOut(auth)} className="w-full flex items-center gap-3 p-3 text-red-500 font-bold hover:bg-red-50 rounded-xl cursor-pointer text-xs"><LogOut size={18} /> KELUAR</button></div>
         </aside>
 
-        <main className="flex-1 p-6 md:p-10 overflow-y-auto text-left">
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto text-left">
           {view === 'calendar' && (
-            <div className="bg-white rounded-[3rem] shadow-sm border border-slate-200 overflow-hidden animate-in fade-in duration-500 text-left">
-              <div className="p-10 flex items-center justify-between border-b bg-slate-50/20 text-left">
-                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight text-left">{selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
-                <div className="flex gap-3 bg-slate-100 p-2 rounded-2xl text-left">
-                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1))} className="p-3 bg-white hover:text-indigo-600 shadow-sm rounded-xl transition-all cursor-pointer text-left"><ChevronLeft size={28}/></button>
-                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1))} className="p-3 bg-white hover:text-indigo-600 shadow-sm rounded-xl transition-all cursor-pointer text-left"><ChevronRight size={28}/></button>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in">
+              <div className="p-6 flex items-center justify-between border-b bg-slate-50/20">
+                <h2 className="text-xl font-bold text-slate-900 uppercase tracking-tight">{selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
+                <div className="flex gap-2">
+                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1))} className="p-2 bg-white border rounded-lg hover:text-indigo-600 cursor-pointer"><ChevronLeft size={20}/></button>
+                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1))} className="p-2 bg-white border rounded-lg hover:text-indigo-600 cursor-pointer"><ChevronRight size={20}/></button>
                 </div>
               </div>
-              <div className="grid grid-cols-7 border-b bg-slate-50/50 text-left">{['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(day => (<div key={day} className="py-6 text-center text-sm font-black text-slate-400 uppercase tracking-widest text-left">{day}</div>))}</div>
-              <div className="grid grid-cols-7 text-left">
-                {[...Array(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay())].map((_, i) => (<div key={i} className="h-40 md:h-52 border-b border-r border-slate-100 bg-slate-50/10 text-left"></div>))}
+              <div className="grid grid-cols-7 border-b bg-slate-50/50">{['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(day => (<div key={day} className="py-3 text-center text-[10px] font-bold text-slate-400 uppercase">{day}</div>))}</div>
+              <div className="grid grid-cols-7">
+                {[...Array(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay())].map((_, i) => (<div key={i} className="h-24 md:h-32 border-b border-r border-slate-100 bg-slate-50/5"></div>))}
                 {[...Array(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate())].map((_, i) => {
                   const d = i + 1;
                   const dStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                   const c = filteredContents.find(item => item.date === dStr);
                   return (
-                    <div key={d} onClick={() => c ? openEditModal(c) : openAddModal(dStr)} className={`h-40 md:h-52 border-b border-r border-slate-100 p-4 transition-all group flex flex-col cursor-pointer ${c ? getFullBlockStatusClass(c.status) : 'bg-white hover:bg-indigo-50/40'} text-left`}>
-                      <div className="flex justify-between items-start mb-2 text-left"><span className={`text-base font-black w-10 h-10 flex items-center justify-center rounded-2xl transition-all ${c ? 'bg-white/20' : 'text-slate-400 group-hover:text-indigo-600'} text-left`}>{d}</span>{!c && <Plus size={20} className="opacity-0 group-hover:opacity-100 text-indigo-600 transition-all group-hover:scale-125 text-left" strokeWidth={3}/>}</div>
-                      {c && <div className="flex-1 flex flex-col justify-between animate-in zoom-in text-left"><h3 className="text-sm font-black line-clamp-3 uppercase tracking-tighter leading-tight text-left">{c.title}</h3><div className="bg-white/20 text-[10px] px-2 py-1 rounded font-black self-start uppercase tracking-widest text-left">{c.type}</div></div>}
+                    <div key={d} onClick={() => c ? openEditModal(c) : openAddModal(dStr)} className={`h-24 md:h-32 border-b border-r border-slate-100 p-2 transition-all group flex flex-col cursor-pointer ${c ? getFullBlockStatusClass(c.status) : 'bg-white hover:bg-indigo-50/30'}`}>
+                      <div className="flex justify-between items-start mb-1"><span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-lg ${c ? 'bg-white/20' : 'text-slate-400'}`}>{d}</span>{!c && <Plus size={14} className="opacity-0 group-hover:opacity-100 text-indigo-600" />}</div>
+                      {c && <div className="flex-1 flex flex-col justify-between overflow-hidden"><h3 className="text-[10px] font-bold line-clamp-2 uppercase leading-tight">{c.title}</h3><div className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded font-bold self-start uppercase">{c.type}</div></div>}
                     </div>
                   );
                 })}
@@ -482,19 +465,17 @@ const App = () => {
           )}
 
           {view === 'list' && (
-            <div className="space-y-4 animate-in fade-in text-left">
-              {filteredContents.length === 0 ? <div className="py-20 text-center font-black text-slate-300 uppercase tracking-widest text-left">Belum Ada Rencana Konten</div> : 
+            <div className="space-y-3 animate-in fade-in">
+              {filteredContents.length === 0 ? <div className="py-20 text-center font-bold text-slate-300 uppercase text-sm">Belum Ada Konten</div> : 
                 filteredContents.sort((a,b) => new Date(a.date) - new Date(b.date)).map(c => (
-                  <div key={c.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 hover:shadow-xl hover:border-indigo-200 transition-all group text-left">
-                    <div className="text-left flex-1"><h3 className="text-xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase text-left">{c.title}</h3><p className="text-sm font-bold text-slate-400 uppercase mt-2 tracking-widest text-left">{c.date} • {c.type}</p></div>
-                    <div className="flex items-center gap-5 text-left">
-                      <select value={c.status} onChange={(e) => updateStatus(c.id, e.target.value)} className={`text-xs font-black px-6 py-2 rounded-xl border-2 outline-none cursor-pointer transition-all ${c.status === 'IDEA' ? 'border-blue-200 text-blue-600' : c.status === 'READY' ? 'border-orange-200 text-orange-600' : 'border-green-200 text-green-600'} text-left`}>
-                        <option value="IDEA">IDEA</option>
-                        <option value="READY">READY</option>
-                        <option value="POSTED">POSTED</option>
+                  <div key={c.id} className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 hover:shadow-md transition-all group">
+                    <div className="flex-1 text-left"><h3 className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 uppercase">{c.title}</h3><p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{c.date} • {c.type}</p></div>
+                    <div className="flex items-center gap-3">
+                      <select value={c.status} onChange={(e) => updateStatus(c.id, e.target.value)} className="text-[10px] font-bold px-3 py-1.5 rounded-lg border outline-none cursor-pointer">
+                        <option value="IDEA">IDEA</option><option value="READY">READY</option><option value="POSTED">POSTED</option>
                       </select>
-                      <button onClick={() => openEditModal(c)} className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:text-indigo-600 hover:bg-white border border-transparent hover:border-indigo-100 transition-all cursor-pointer text-left"><Pencil size={24}/></button>
-                      <button onClick={() => setConfirmModal({ show: true, type: 'content', target: c.id })} className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:text-red-500 hover:bg-white border border-transparent hover:border-red-100 transition-all cursor-pointer text-left"><Trash2 size={24}/></button>
+                      <button onClick={() => openEditModal(c)} className="p-2 text-slate-400 hover:text-indigo-600 cursor-pointer"><Pencil size={18}/></button>
+                      <button onClick={() => setConfirmModal({ show: true, type: 'content', target: c.id })} className="p-2 text-slate-400 hover:text-red-500 cursor-pointer"><Trash2 size={18}/></button>
                     </div>
                   </div>
                 ))
@@ -503,27 +484,27 @@ const App = () => {
           )}
 
           {view === 'profile' && (
-            <div className="animate-in slide-in-from-right-4 max-w-4xl mx-auto text-left">
-               <div className="flex justify-between items-center mb-10 text-left">
-                <div className="text-left"><h2 className="text-4xl font-black text-slate-900 flex items-center gap-4 text-left"><div className="bg-emerald-600 p-3 rounded-2xl text-white shadow-lg cursor-default"><UserCircle size={32} /></div> Profil {filterBrand}</h2><p className="text-slate-500 font-bold uppercase text-sm tracking-widest mt-4 opacity-60 text-left">Identity & Links</p></div>
-                <button onClick={() => setIsEditingProfile(!isEditingProfile)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm uppercase transition-all cursor-pointer ${isEditingProfile ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 text-white shadow-xl hover:bg-emerald-700'} text-left`}>{isEditingProfile ? 'Batal' : 'Edit Profil'}</button>
+            <div className="animate-in slide-in-from-right-2 max-w-2xl mx-auto space-y-6">
+              <div className="flex justify-between items-center mb-6 text-left">
+                <h2 className="text-2xl font-bold flex items-center gap-3"><UserCircle size={28} className="text-emerald-600" /> Profil {filterBrand}</h2>
+                <button onClick={() => setIsEditingProfile(!isEditingProfile)} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase cursor-pointer ${isEditingProfile ? 'bg-slate-200' : 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700'}`}>{isEditingProfile ? 'Batal' : 'Edit'}</button>
               </div>
+              
               {isEditingProfile ? (
-                <div className="bg-white rounded-[3rem] p-10 shadow-xl space-y-8 animate-in zoom-in duration-300 text-left">
-                  <div className="space-y-2 text-left"><label className="text-xs font-black text-slate-400 uppercase block mb-2 text-left">Deskripsi Brand</label><textarea rows="4" className="w-full p-6 bg-slate-50 border rounded-[2rem] outline-none font-medium text-lg resize-none shadow-inner text-left" value={profileForm.description} onChange={e => setProfileForm({...profileForm, description: e.target.value})} /></div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-                    <div className="text-left"><label className="text-xs font-black text-slate-400 uppercase block mb-2 text-left">Platform Utama</label><input type="text" className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold text-lg shadow-inner text-left" value={profileForm.platforms} onChange={e => setProfileForm({...profileForm, platforms: e.target.value})} /></div>
-                    <div className="text-left"><label className="text-xs font-black text-slate-400 uppercase block mb-2 text-left">Link Brand</label><input type="url" className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold text-lg text-indigo-600 shadow-inner text-left" value={profileForm.link} onChange={e => setProfileForm({...profileForm, link: e.target.value})} /></div>
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4 text-left">
+                  <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Deskripsi</label><textarea rows="3" className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-sm font-medium" value={profileForm.description} onChange={e => setProfileForm({...profileForm, description: e.target.value})} /></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Platform</label><input type="text" className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-sm font-bold" value={profileForm.platforms} onChange={e => setProfileForm({...profileForm, platforms: e.target.value})} /></div>
+                    <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Link</label><input type="url" className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-sm font-bold text-indigo-600" value={profileForm.link} onChange={e => setProfileForm({...profileForm, link: e.target.value})} /></div>
                   </div>
-                  <button onClick={handleSaveProfile} className="w-full bg-emerald-600 text-white font-black py-6 rounded-[2.5rem] shadow-2xl flex items-center justify-center gap-3 text-lg cursor-pointer hover:bg-emerald-700 transition-all uppercase tracking-widest text-left"><Save size={24} /> Simpan Profil</button>
+                  <button onClick={handleSaveProfile} className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-md text-xs uppercase cursor-pointer flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all"><Save size={16}/> Simpan</button>
                 </div>
               ) : (
-                <div className="space-y-8 animate-in zoom-in duration-300 text-left">
-                  <div className="bg-white rounded-[3rem] p-10 shadow-sm border relative overflow-hidden group text-left"><div className="absolute right-0 top-0 p-8 text-slate-100 group-hover:text-emerald-50 transition-colors text-left"><Building2 size={120}/></div><div className="relative z-10 text-left"><h3 className="text-xs font-black text-slate-400 uppercase mb-4 tracking-widest text-left">Nama Brand</h3><p className="text-4xl font-black text-slate-900 leading-tight text-left">{filterBrand}</p></div></div>
-                  <div className="bg-white rounded-[3rem] p-10 shadow-sm border text-left"><h3 className="text-xs font-black text-slate-400 uppercase mb-6 tracking-widest text-left">Deskripsi Brand</h3><p className="text-xl font-medium text-slate-700 italic italic text-left">"{brandProfiles[filterBrand]?.description || 'Belum ada deskripsi...'}"</p></div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-                    <div className="bg-indigo-600 rounded-[3rem] p-10 text-white relative shadow-xl overflow-hidden group text-left text-left"><Smartphone className="absolute -right-6 -bottom-6 opacity-10 w-32 h-32 text-left" /><h3 className="text-xs font-black text-indigo-200 uppercase mb-6 tracking-widest text-left">Platform</h3><p className="text-2xl font-black text-left">{brandProfiles[filterBrand]?.platforms || '-'}</p></div>
-                    <div className="bg-white rounded-[3rem] p-10 shadow-sm border group text-left text-left"><h3 className="text-xs font-black text-slate-400 uppercase mb-6 tracking-widest flex items-center gap-2 text-left"><LinkIcon size={16}/> Link Utama</h3>{brandProfiles[filterBrand]?.link ? <a href={brandProfiles[filterBrand].link} target="_blank" rel="noopener noreferrer" className="text-xl font-black text-indigo-600 hover:underline break-all text-left">Tautan Brand <ExternalLink className="inline ml-2" size={20} /></a> : <p className="text-xl font-black text-slate-300 text-left">-</p>}</div>
+                <div className="space-y-4">
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border text-left"><h3 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Deskripsi</h3><p className="text-sm font-medium italic">"{brandProfiles[filterBrand]?.description || 'Kosong'}"</p></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-indigo-600 rounded-2xl p-6 text-white text-left"><h3 className="text-[10px] font-bold opacity-70 uppercase mb-2">Platform</h3><p className="text-lg font-bold">{brandProfiles[filterBrand]?.platforms || '-'}</p></div>
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border text-left"><h3 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Link</h3>{brandProfiles[filterBrand]?.link ? <a href={brandProfiles[filterBrand].link} target="_blank" className="text-sm font-bold text-indigo-600 hover:underline">Tautan <ExternalLink className="inline ml-1" size={14} /></a> : <p className="text-sm font-bold">-</p>}</div>
                   </div>
                 </div>
               )}
@@ -531,12 +512,12 @@ const App = () => {
           )}
 
           {view === 'sourceBank' && (
-            <div className="animate-in slide-in-from-bottom-4 duration-500 text-left">
-              <h2 className="text-3xl font-black text-slate-900 flex items-center gap-4 mb-10 text-left"><div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg cursor-default"><BookOpen size={28} /></div> Source Bank</h2>
-              <button onClick={() => {setEditingSourceId(null); setSourceForm({url:'', notes:'', brand:filterBrand}); setShowSourceModal(true);}} className="mb-6 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase cursor-pointer hover:bg-indigo-700 flex items-center gap-2 transition-all text-left"><Plus size={16}/> Tambah Referensi</button>
-              {filteredSources.length === 0 ? (<div className="text-center py-36 bg-white rounded-[3rem] border-4 border-dashed border-slate-100 shadow-inner text-left"><LinkIcon size={72} className="mx-auto text-slate-100 mb-6 text-left" /><p className="text-xl text-slate-400 font-black uppercase tracking-widest text-left">Belum ada referensi</p></div>) : (
-                <div className="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm text-left">
-                   {filteredSources.map(s => (<div key={s.id} className="p-6 border-b flex justify-between items-center hover:bg-indigo-50/30 transition-all text-left"><div className="flex-1 pr-10 text-left"><a href={s.url} target="_blank" className="text-sm font-black text-indigo-600 truncate block mb-1 hover:underline text-left">{s.url}</a><p className="text-sm text-slate-500 italic italic text-left">"{s.notes || '-'}"</p></div><div className="flex gap-2 text-left"><button onClick={() => {setEditingSourceId(s.id); setSourceForm({...s}); setShowSourceModal(true);}} className="p-2.5 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-xl transition-all cursor-pointer text-left"><Pencil size={18}/></button><button onClick={() => setConfirmModal({ show: true, type: 'source', target: s.id })} className="p-2.5 bg-slate-50 text-slate-400 hover:text-red-500 rounded-xl transition-all cursor-pointer text-left"><Trash2 size={18}/></button></div></div>))}
+            <div className="animate-in slide-in-from-bottom-2 text-left">
+              <h2 className="text-2xl font-bold flex items-center gap-3 mb-6"><BookOpen size={28} className="text-indigo-600" /> Source Bank</h2>
+              <button onClick={() => {setEditingSourceId(null); setSourceForm({url:'', notes:''}); setShowSourceModal(true);}} className="mb-4 bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-[10px] uppercase cursor-pointer hover:bg-indigo-700 flex items-center gap-2 shadow-sm transition-all"><Plus size={14}/> Tambah Referensi</button>
+              {filteredSources.length === 0 ? <div className="py-20 text-center text-slate-300 font-bold uppercase text-xs">Belum ada referensi</div> : (
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                   {filteredSources.map(s => (<div key={s.id} className="p-4 border-b flex justify-between items-center hover:bg-indigo-50/20"><div className="flex-1 pr-6"><a href={s.url} target="_blank" className="text-xs font-bold text-indigo-600 truncate block hover:underline">{s.url}</a><p className="text-[10px] text-slate-500 italic mt-0.5">"{s.notes || '-'}"</p></div><div className="flex gap-1"><button onClick={() => {setEditingSourceId(s.id); setSourceForm({...s}); setShowSourceModal(true);}} className="p-2 text-slate-400 hover:text-indigo-600 cursor-pointer"><Pencil size={16}/></button><button onClick={() => setConfirmModal({ show: true, type: 'source', target: s.id })} className="p-2 text-slate-400 hover:text-red-500 cursor-pointer"><Trash2 size={16}/></button></div></div>))}
                 </div>
               )}
            </div>
@@ -544,104 +525,84 @@ const App = () => {
         </main>
       </div>
 
-      {/* --- ALL MODALS --- */}
-      
-      {/* MODAL TAMBAH/EDIT IDE (DENGAN PREVIEW & CAPTION) */}
+      {/* MODAL TAMBAH/EDIT IDE */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 text-left">
-          <div className="bg-white rounded-[3.5rem] shadow-2xl w-full max-w-7xl h-[92vh] overflow-hidden flex flex-col md:flex-row text-left animate-in zoom-in duration-300">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 text-left">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] overflow-hidden flex flex-col md:flex-row animate-in zoom-in duration-200">
             {/* Form Side */}
-            <div className="flex-1 p-10 overflow-y-auto border-r border-slate-100 text-left scrollbar-hide">
-              <div className="flex justify-between items-center mb-8 text-left">
-                <h2 className="text-3xl font-black text-indigo-900 uppercase tracking-tight text-left">{editingId ? 'Edit Ide' : 'Ide Baru'}</h2>
-                <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-2 transition-colors cursor-pointer text-left"><X size={32} /></button>
+            <div className="flex-1 p-8 overflow-y-auto border-r border-slate-100 scrollbar-hide text-left">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold uppercase tracking-tight">{editingId ? 'Edit Ide' : 'Ide Baru'}</h2>
+                <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"><X size={24} /></button>
               </div>
               
-              <form onSubmit={handleFormSubmit} className="space-y-8 text-left">
-                <div className="bg-indigo-50 p-4 rounded-2xl flex items-center gap-3 text-left">
-                  <Building2 size={16} className="text-indigo-600 text-left"/>
-                  <p className="text-xs font-black text-indigo-900 uppercase tracking-widest text-left">{filterBrand}</p>
+              <form onSubmit={handleFormSubmit} className="space-y-6">
+                <div className="bg-indigo-50 px-3 py-1.5 rounded-lg flex items-center gap-2 w-fit">
+                  <Building2 size={14} className="text-indigo-600"/><p className="text-[10px] font-bold text-indigo-900 uppercase">{filterBrand}</p>
                 </div>
 
-                <div className="text-left">
-                  <label className="block text-xs font-black text-slate-400 mb-3 uppercase tracking-widest text-left">Judul Konten</label>
-                  <input required type="text" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] outline-none font-black text-xl shadow-inner focus:ring-4 focus:ring-indigo-50 transition-all text-left" value={formContent.title} onChange={e => setFormContent({...formContent, title: e.target.value})} />
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest">Judul</label>
+                  <input required type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm focus:ring-2 focus:ring-indigo-100" value={formContent.title} onChange={e => setFormContent({...formContent, title: e.target.value})} />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-                  <div className="text-left">
-                    <label className="text-xs font-black text-slate-400 mb-3 uppercase block tracking-widest text-left">Tanggal Tayang</label>
-                    <input type="date" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] font-black text-lg outline-none shadow-inner text-left" value={formContent.date} onChange={e => setFormContent({...formContent, date: e.target.value})} />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase block tracking-widest">Tanggal</label>
+                    <input type="date" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs outline-none" value={formContent.date} onChange={e => setFormContent({...formContent, date: e.target.value})} />
                   </div>
-                  <div className="text-left">
-                    <label className="text-xs font-black text-slate-400 mb-3 uppercase block tracking-widest text-left">Pillar Konten</label>
-                    <select className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] font-black text-lg outline-none appearance-none cursor-pointer text-left" value={formContent.type} onChange={e => setFormContent({...formContent, type: e.target.value})}>
-                      <option>Edukasi</option>
-                      <option>Promosi</option>
-                      <option>Entertainment</option>
-                      <option>Testimoni</option>
-                      <option>Behind the Scene</option>
-                    </select>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase block tracking-widest">Pillar</label>
+                    <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs outline-none cursor-pointer appearance-none" value={formContent.type} onChange={e => setFormContent({...formContent, type: e.target.value})}><option>Edukasi</option><option>Promosi</option><option>Entertainment</option><option>Testimoni</option><option>Behind the Scene</option></select>
                   </div>
                 </div>
 
-                <div className="text-left">
-                  <label className="text-xs font-black text-slate-400 mb-3 uppercase block tracking-widest text-left">Naskah / Caption</label>
-                  <textarea rows="5" placeholder="Tulis caption di sini..." className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] font-bold text-lg outline-none shadow-inner resize-none text-left" value={formContent.caption} onChange={e => setFormContent({...formContent, caption: e.target.value})}></textarea>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase block tracking-widest">Caption</label>
+                  <textarea rows="4" placeholder="..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm outline-none resize-none" value={formContent.caption} onChange={e => setFormContent({...formContent, caption: e.target.value})}></textarea>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-                   <Dropdown label="Status Produksi" value={formContent.status} onChange={e => setFormContent({...formContent, status: e.target.value})} options={['IDEA', 'READY', 'POSTED']} />
-                   <div className="text-left">
-                     <label className="text-xs font-black text-slate-400 mb-3 uppercase block tracking-widest text-left">Visual</label>
-                     <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleImageChange} />
-                     <button type="button" onClick={triggerFileInput} className="w-full p-6 bg-slate-50 border border-dashed border-slate-300 rounded-[2rem] font-black text-xs hover:bg-slate-100 transition-all uppercase cursor-pointer text-left">Upload Media</button>
+                <div className="grid grid-cols-2 gap-4">
+                   <Dropdown label="Status" value={formContent.status} onChange={e => setFormContent({...formContent, status: e.target.value})} options={['IDEA', 'READY', 'POSTED']} />
+                   <div>
+                     <label className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase block tracking-widest text-left">Visual</label>
+                     <input ref={fileInputRef} type="file" className="hidden" onChange={handleImageChange} />
+                     <button type="button" onClick={triggerFileInput} className="w-full p-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl font-bold text-[10px] uppercase hover:bg-slate-100 cursor-pointer">Upload Gambar</button>
                    </div>
                 </div>
 
-                {/* Tombol Simpan yang diperbarui (py-5 untuk proporsional) */}
-                <button type="submit" className="w-full bg-indigo-600 text-white font-black py-5 rounded-[2rem] shadow-2xl uppercase tracking-widest text-lg hover:bg-indigo-700 hover:scale-[1.01] active:scale-95 transition-all cursor-pointer text-left">
-                  Simpan Rencana
-                </button>
+                <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-lg uppercase tracking-widest text-xs hover:bg-indigo-700 active:scale-95 transition-all cursor-pointer">Simpan Rencana</button>
               </form>
             </div>
 
             {/* Preview Side */}
-            <div className="hidden lg:flex flex-[0.8] bg-slate-50 p-10 flex-col items-center justify-center text-left relative">
-              <div className="absolute top-8 left-10 flex items-center gap-2 text-indigo-400 font-black text-xs uppercase tracking-[0.3em] text-left">
-                <Eye size={16} /> Preview Konten
+            <div className="hidden lg:flex flex-[0.7] bg-slate-50 p-6 flex-col items-center justify-center relative">
+              <div className="absolute top-6 left-6 flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-widest">
+                <Eye size={12} /> Live Preview
               </div>
               
-              <div className="w-[320px] h-[640px] bg-white rounded-[3.5rem] shadow-[0_40px_100px_-15px_rgba(0,0,0,0.2)] border-[12px] border-slate-900 overflow-hidden flex flex-col text-left">
-                {/* Visual Preview (Perbaikan pengecekan gambar) */}
-                <div className="flex-1 bg-slate-100 flex items-center justify-center relative overflow-hidden text-left">
-                  {formContent.images && formContent.images.length > 0 ? (
-                    <img src={formContent.images[formContent.images.length - 1]} className="w-full h-full object-cover text-left" alt="Preview" />
+              <div className="w-[260px] h-[520px] bg-white rounded-[2.5rem] shadow-xl border-[10px] border-slate-900 overflow-hidden flex flex-col text-left">
+                {/* Visual Preview */}
+                <div className="h-2/3 bg-slate-100 flex items-center justify-center relative overflow-hidden">
+                  {formContent.images?.length > 0 ? (
+                    <img src={formContent.images[0]} className="w-full h-full object-cover" alt="Preview" />
                   ) : (
-                    <div className="text-center text-slate-300 text-left">
-                      <ImageIcon size={64} strokeWidth={1} className="mx-auto mb-2 text-left" />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-left">Belum ada visual</p>
+                    <div className="text-center text-slate-300">
+                      <ImageIcon size={40} strokeWidth={1} />
+                      <p className="text-[8px] font-bold uppercase tracking-widest mt-2">Belum ada visual</p>
                     </div>
                   )}
-                  <div className="absolute top-4 left-4 text-left">
-                    <div className="bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 text-white font-black text-[8px] uppercase text-left">
-                      {formContent.type}
-                    </div>
-                  </div>
+                  <div className="absolute top-3 left-3 bg-black/40 px-2 py-1 rounded-md text-white font-bold text-[7px] uppercase backdrop-blur-sm">{formContent.type}</div>
                 </div>
 
                 {/* Caption Preview */}
-                <div className="p-6 h-[200px] overflow-y-auto text-left scrollbar-hide">
-                  <div className="flex items-center gap-2 mb-3 text-left">
-                    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs text-left">
-                      {filterBrand ? filterBrand.charAt(0).toUpperCase() : 'P'}
-                    </div>
-                    <p className="text-[10px] font-black text-slate-900 text-left">{filterBrand || 'Your Business'}</p>
+                <div className="p-4 flex-1 overflow-y-auto bg-white border-t border-slate-100 scrollbar-hide">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-[8px] uppercase">{filterBrand ? filterBrand.charAt(0) : 'P'}</div>
+                    <p className="text-[9px] font-bold">{filterBrand || 'Brand Anda'}</p>
                   </div>
-                  <h4 className="text-xs font-black text-slate-900 mb-2 leading-tight uppercase text-left">{formContent.title || 'Judul Konten'}</h4>
-                  <p className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-wrap text-left">
-                    {formContent.caption || 'Naskah caption akan tampil di sini...'}
-                  </p>
+                  <h4 className="text-[10px] font-bold uppercase mb-1 leading-tight">{formContent.title || 'Judul Konten'}</h4>
+                  <p className="text-[9px] text-slate-500 leading-normal whitespace-pre-wrap">{formContent.caption || 'Naskah caption akan tampil di sini...'}</p>
                 </div>
               </div>
             </div>
@@ -651,36 +612,36 @@ const App = () => {
 
       {/* MODAL KONFIRMASI HAPUS */}
       {confirmModal.show && (
-        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[200] flex items-center justify-center p-4 text-left">
-          <div className="bg-white rounded-[3rem] p-10 max-w-sm w-full shadow-2xl animate-in zoom-in text-center text-left">
-            <div className="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-bounce text-left"><Trash2 size={40} /></div>
-            <h3 className="text-2xl font-black uppercase tracking-tight mb-3 text-left text-center">Hapus Data?</h3>
-            <p className="text-slate-500 font-medium text-sm mb-10 leading-relaxed text-left text-center">Tindakan ini tidak bisa dibatalkan. Apakah Anda yakin ingin melanjutkan?</p>
-            <div className="flex gap-4 text-left"><button onClick={() => setConfirmModal({ show: false, type: '', target: null })} className="flex-1 py-5 bg-slate-100 rounded-2xl font-black uppercase text-xs tracking-widest transition-colors hover:bg-slate-200 cursor-pointer text-left">Batal</button><button onClick={executeDelete} className="flex-1 py-5 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-red-100 hover:bg-red-700 transition-all cursor-pointer text-left">Hapus Permanen</button></div>
+        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-xs w-full shadow-2xl animate-in zoom-in text-center">
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6 animate-pulse"><Trash2 size={32} /></div>
+            <h3 className="text-lg font-bold uppercase mb-2">Hapus Data?</h3>
+            <p className="text-slate-500 text-xs mb-8 leading-relaxed">Tindakan ini tidak bisa dibatalkan. Lanjutkan?</p>
+            <div className="flex gap-3"><button onClick={() => setConfirmModal({ show: false, type: '', target: null })} className="flex-1 py-3 bg-slate-100 rounded-xl font-bold uppercase text-[10px] hover:bg-slate-200 cursor-pointer">Batal</button><button onClick={executeDelete} className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold uppercase text-[10px] shadow-md hover:bg-red-700 cursor-pointer">Hapus</button></div>
           </div>
         </div>
       )}
 
       {/* MODAL BISNIS BARU */}
       {showAddBrandModal && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 text-left">
-          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md p-12 space-y-10 animate-in zoom-in text-center text-left">
-            <h2 className="text-3xl font-black text-indigo-900 uppercase tracking-tight text-left text-center">Bisnis Baru</h2>
-            <input required autoFocus type="text" placeholder="Masukkan Nama Bisnis" className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] outline-none font-black text-xl text-center shadow-inner focus:ring-4 focus:ring-indigo-50 transition-all text-left" value={newBrandName} onChange={e => setNewBrandName(e.target.value)} />
-            <div className="flex gap-4 text-left"><button onClick={() => setShowAddBrandModal(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-bold uppercase text-xs tracking-widest cursor-pointer text-left">Batal</button><button onClick={handleAddBrand} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 transition-all uppercase tracking-widest shadow-lg cursor-pointer text-left">Simpan</button></div>
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 space-y-6 animate-in zoom-in text-center">
+            <h2 className="text-xl font-bold uppercase">Bisnis Baru</h2>
+            <input required autoFocus type="text" placeholder="..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm text-center" value={newBrandName} onChange={e => setNewBrandName(e.target.value)} />
+            <div className="flex gap-3"><button onClick={() => setShowAddBrandModal(false)} className="flex-1 py-3 bg-slate-100 rounded-xl font-bold uppercase text-[10px] cursor-pointer">Batal</button><button onClick={handleAddBrand} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold uppercase text-[10px] shadow-md hover:bg-indigo-700 cursor-pointer">Simpan</button></div>
           </div>
         </div>
       )}
 
       {/* MODAL SOURCE BARU */}
       {showSourceModal && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-lg z-[60] flex items-center justify-center p-4 text-left">
-          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-xl p-10 space-y-8 animate-in zoom-in duration-300 text-left">
-            <h2 className="text-2xl font-black text-indigo-900 uppercase tracking-tight text-left">{editingSourceId ? 'Edit' : 'Tambah'} Source</h2>
-            <div className="text-left"><label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest text-left">Tautan URL</label><input required autoFocus type="url" placeholder="https://..." className="w-full p-5 bg-slate-50 border rounded-2xl outline-none font-bold shadow-inner text-left" value={sourceForm.url} onChange={e => setSourceForm({ ...sourceForm, url: e.target.value })} /></div>
-            <div className="text-left"><label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest text-left">Catatan Singkat</label><textarea rows="4" className="w-full p-6 bg-slate-50 border rounded-[2rem] outline-none font-medium resize-none shadow-inner text-left" value={sourceForm.notes} onChange={e => setSourceForm({ ...sourceForm, notes: e.target.value })}></textarea></div>
-            <button onClick={handleSourceSubmit} className="w-full bg-indigo-600 text-white font-black py-6 rounded-[2rem] uppercase tracking-widest transition-all hover:bg-indigo-700 cursor-pointer shadow-lg text-left">Simpan ke Bank Ide</button>
-            <button onClick={() => setShowSourceModal(false)} className="w-full py-4 text-slate-400 font-bold uppercase text-xs cursor-pointer text-left text-center">Batal</button>
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 space-y-6 animate-in zoom-in text-left">
+            <h2 className="text-xl font-bold uppercase">{editingSourceId ? 'Edit' : 'Tambah'} Source</h2>
+            <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Link URL</label><input required autoFocus type="url" placeholder="https://..." className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-xs font-bold" value={sourceForm.url} onChange={e => setSourceForm({ ...sourceForm, url: e.target.value })} /></div>
+            <div><label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Catatan</label><textarea rows="3" className="w-full p-3 bg-slate-50 border rounded-xl outline-none text-xs font-medium resize-none" value={sourceForm.notes} onChange={e => setSourceForm({ ...sourceForm, notes: e.target.value })}></textarea></div>
+            <button onClick={handleSourceSubmit} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl uppercase text-[10px] tracking-widest hover:bg-indigo-700 cursor-pointer shadow-md">Simpan ke Bank Ide</button>
+            <button onClick={() => setShowSourceModal(false)} className="w-full py-2 text-slate-400 font-bold uppercase text-[9px] cursor-pointer text-center">Batal</button>
           </div>
         </div>
       )}
